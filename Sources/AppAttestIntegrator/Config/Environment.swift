@@ -1,9 +1,7 @@
 import Foundation
 
 /// Environment configuration for the integrator daemon.
-/// 
-/// Hard non-goals enforced: No cryptographic verification, no trust decisions,
-/// no policy logic, no freshness guarantees beyond backend TTL.
+/// See README "Explicit Non-Goals" section.
 struct Environment {
     /// Backend base URL (default: http://127.0.0.1:8080)
     static var backendBaseURL: String {

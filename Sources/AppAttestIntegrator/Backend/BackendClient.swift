@@ -4,7 +4,7 @@ import Vapor
 /// HTTP client for appattest-backend communication.
 /// 
 /// Strict HTTP client with timeout, correlation headers, and verbatim response preservation.
-/// Hard non-goals: No cryptographic verification, no trust decisions.
+/// See README "Explicit Non-Goals" section.
 struct BackendClient {
     let baseURL: String
     let timeoutMS: Int

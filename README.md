@@ -1,33 +1,28 @@
 # appattest-integrator
 
-Stateless-or-lightly-stateful integration daemon that orchestrates Apple App Attest flows by coordinating existing components.
+Flow orchestration daemon for Apple App Attest verification flows.
 
 ## Mental Model
 
-appattest-integrator is a flow orchestrator.
-It enforces sequence, correlates identifiers, and records backend responses.
-It does not validate cryptography, interpret results, or make decisions.
-Treat it as a status board, not a gate.
+appattest-integrator enforces sequencing, correlates identifiers, and records backend responses verbatim. It maintains flow state and exposes status endpoints. It does not interpret results or make authorization decisions.
 
-## What It Is
+## Behavior
 
-Infrastructure-grade orchestration daemon providing deterministic sequencing, explicit flow state, stable API contract for product backends, and strong observability.
+The integrator:
+- Enforces state machine transitions (registered → hash_issued → verified/rejected)
+- Generates correlation IDs and propagates them to backend
+- Stores flow state with TTL-based expiration
+- Returns backend responses verbatim
+- Exposes Prometheus metrics and structured logs
 
-## What It Does
+## Explicit Non-Goals
 
-- Flow sequencing: Enforces state machine transitions (registered → hash_issued → verified/rejected)
-- Correlation: Generates and propagates correlation IDs to backend
-- Stable API: HTTP endpoints for product backends to initiate and progress flows
-- Observability: Structured logging and Prometheus metrics
-
-## What It Does NOT Do
-
-- **No cryptographic verification**: Delegated to appattest-backend
-- **No trust decisions**: All verification handled by backend
-- **No policy logic**: Policy enforcement is backend responsibility
-- **No freshness guarantees**: Beyond backend TTL surfaced as metadata
-- **No replay prevention**: Beyond backend semantics
-- **No "verified => authorized" logic**: Authorization is product backend concern
+- No cryptographic verification
+- No trust decisions
+- No policy logic
+- No freshness guarantees beyond backend TTL
+- No replay prevention beyond backend semantics
+- No authorization decisions
 
 ## Architecture
 
@@ -35,26 +30,29 @@ Infrastructure-grade orchestration daemon providing deterministic sequencing, ex
 Product Backend → appattest-integrator → appattest-backend
 ```
 
-The integrator:
-1. Receives flow initiation requests from product backends
-2. Coordinates with appattest-backend for cryptographic operations
-3. Maintains flow state and enforces sequencing
-4. Returns stable API responses with verbatim backend data
+The integrator receives flow requests, forwards them to appattest-backend with correlation headers, stores state transitions, and returns backend responses unchanged.
+
+## Component Boundaries
+
+- **appattest-decoder**: Structural parsing only
+- **appattest-validator**: Cryptographic verification only
+- **appattest-backend**: Verification + binding enforcement (authoritative)
+- **appattest-integrator**: Flow orchestration only
 
 ## Deployment
 
-### Host Requirements
+### Requirements
 
-- Debian Linux (tested on Orange Pi)
+- Debian Linux
 - Swift 6.2+
-- Same machine as appattest-backend (default)
+- appattest-backend running (default: `http://127.0.0.1:8080`)
 
 ### Environment Variables
 
 - `APP_ATTEST_BACKEND_BASE_URL`: Backend base URL (default: `http://127.0.0.1:8080`)
 - `APP_ATTEST_INTEGRATOR_PORT`: Listen port (default: `8090`)
 - `APP_ATTEST_BACKEND_TIMEOUT_MS`: Backend request timeout (default: `3000`)
-- `APP_ATTEST_DEBUG_LOG_ARTIFACTS`: Debug logging level (0=none, 1=lengths+SHA256, 2=full dumps DEV-ONLY, default: `0`)
+- `APP_ATTEST_DEBUG_LOG_ARTIFACTS`: Debug logging level (0=none, 1=lengths+SHA256, 2=full dumps, default: `0`)
 - `APP_ATTEST_BUILD_SHA256`: Build SHA256 for health endpoint (optional)
 
 ### Build
@@ -69,27 +67,25 @@ swift build -c release
 .build/release/AppAttestIntegrator
 ```
 
-Or use the development script:
+Development:
 
 ```bash
 ./scripts/run_dev.sh
 ```
 
-### Systemd Service
-
-Install systemd unit:
+### Systemd
 
 ```bash
 sudo ./scripts/install_systemd.sh
 ```
 
-Service file location: `/etc/systemd/system/appattest-integrator.service`
+Service file: `/etc/systemd/system/appattest-integrator.service`
 
 ## API Endpoints
 
 ### POST /v1/flows/start
 
-Initiate a new flow.
+Initiates a flow. Returns integrator-scoped `flowHandle` and backend-authored `flowID`.
 
 **Request:**
 ```json
@@ -125,7 +121,7 @@ curl -X POST http://localhost:8090/v1/flows/start \
 
 ### POST /v1/flows/{flowHandle}/client-data-hash
 
-Request clientDataHash for assertion.
+Requests clientDataHash. Requires flow in `registered` state.
 
 **Request:**
 ```json
@@ -152,7 +148,7 @@ curl -X POST http://localhost:8090/v1/flows/abc123/client-data-hash \
 
 ### POST /v1/flows/{flowHandle}/assert
 
-Submit assertion for verification.
+Submits assertion. Requires flow in `hash_issued` state. Returns backend response verbatim.
 
 **Request:**
 ```json
@@ -182,7 +178,7 @@ curl -X POST http://localhost:8090/v1/flows/abc123/assert \
 
 ### GET /v1/flows/{flowHandle}/status
 
-Get flow status.
+Returns current flow state. Does not imply authorization or trust.
 
 **Response:**
 ```json
@@ -206,7 +202,7 @@ curl http://localhost:8090/v1/flows/abc123/status
 
 ### GET /health
 
-Health check endpoint.
+Health check with flow counts and backend URL.
 
 **Response:**
 ```json
@@ -220,23 +216,11 @@ Health check endpoint.
 }
 ```
 
-**Example:**
-```bash
-curl http://localhost:8090/health
-```
-
 ### GET /metrics
 
-Prometheus metrics endpoint.
-
-**Example:**
-```bash
-curl http://localhost:8090/metrics
-```
+Prometheus-format metrics.
 
 ## Error Responses
-
-All errors return JSON:
 
 ```json
 {
@@ -259,10 +243,10 @@ All errors return JSON:
 
 **States:**
 - `created`: Initial state (internal)
-- `registered`: Attestation registered with backend
-- `hash_issued`: ClientDataHash issued
-- `verified`: Terminal - Verification succeeded
-- `rejected`: Terminal - Verification failed
+- `registered`: Backend reported registration
+- `hash_issued`: Backend issued clientDataHash
+- `verified`: Terminal - Backend reported verification success
+- `rejected`: Terminal - Backend reported verification failure
 - `expired`: Terminal - Flow expired
 - `error`: Terminal - Error occurred
 
@@ -272,7 +256,7 @@ All errors return JSON:
 - `hash_issued` → `verified` | `rejected`
 - Any state → `expired` (when `now > expiresAt`)
 
-Terminal states reject further mutation calls with deterministic error codes.
+Terminal states reject further mutations.
 
 ## Flow Store
 
@@ -280,9 +264,9 @@ In-memory thread-safe store with TTL cleanup. Extension point for persistence (R
 
 ## Backend Integration
 
-The integrator sends correlation headers to backend:
+Correlation headers sent to backend:
 - `X-Correlation-ID`: Flow correlation ID
-- `X-Flow-Handle`: Flow handle
+- `X-Flow-Handle`: Integrator-scoped flow handle
 
 Backend endpoints:
 - `POST /app-attest/register`
@@ -293,9 +277,9 @@ Backend endpoints:
 
 **Logging:**
 - Structured logs with correlationID, flowHandle, flowID
-- State transitions logged
-- Backend request/response status logged
-- Artifacts logged as lengths + SHA256 (if debug enabled)
+- State transitions
+- Backend request/response status
+- Artifact lengths + SHA256 (if debug enabled)
 
 **Metrics:**
 - `flow_started_total`: Counter
@@ -306,18 +290,7 @@ Backend endpoints:
 
 ## Development
 
-Run tests:
-
 ```bash
 swift test
-```
-
-Run linter:
-
-```bash
 swiftlint
 ```
-
-## License
-
-[Specify license]

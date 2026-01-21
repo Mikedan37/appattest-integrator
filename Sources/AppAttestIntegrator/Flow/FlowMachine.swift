@@ -3,7 +3,7 @@ import Foundation
 /// Pure functions for flow state transitions.
 /// 
 /// Deterministic sequencing with explicit errors for violations.
-/// No hidden retries, no policy logic, no trust decisions.
+/// See README "Explicit Non-Goals" section.
 enum FlowMachine {
     
     /// Transition from start to registered state.

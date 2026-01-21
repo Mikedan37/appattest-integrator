@@ -17,7 +17,7 @@ enum FlowStateEnum: String, Codable {
 /// Flow state representation.
 /// 
 /// Contains all metadata needed for orchestration sequencing and correlation.
-/// Hard non-goals: No cryptographic verification, no trust decisions, no policy logic.
+/// See README "Explicit Non-Goals" section.
 struct FlowState: Codable {
     let flowHandle: String
     let flowID: String

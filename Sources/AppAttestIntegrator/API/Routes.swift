@@ -2,8 +2,7 @@ import Foundation
 import Vapor
 
 /// HTTP API routes for flow orchestration.
-/// 
-/// Hard non-goals: No cryptographic verification, no trust decisions, no policy logic.
+/// See README "Explicit Non-Goals" section.
 func configureRoutes(
     _ app: Application,
     flowStore: FlowStore,
@@ -209,7 +208,7 @@ func configureRoutes(
             
             // Use stored clientDataHash
             guard let clientDataHash = flow.clientDataHash_base64 else {
-                throw Abort(.badRequest, reason: "clientDataHash not available - flow must be in hash_issued state")
+                throw Abort(.badRequest, reason: "clientDataHash not available - flow not in hash_issued state")
             }
             
             let verifyRequest = BackendVerifyRequest(
