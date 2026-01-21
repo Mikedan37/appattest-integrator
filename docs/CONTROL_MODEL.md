@@ -52,41 +52,41 @@ It forwards them unchanged and accumulates protocol-level state only.
 
 Time advances in event time, not wall-clock time.
 
-\[ t \in \mathbb{N}, \quad t \mapsto \text{protocol event} \]
+$$ t \in \mathbb{N}, \quad t \mapsto \text{protocol event} $$
 
-There is no continuous-time signal \(x(t)\).
+There is no continuous-time signal $x(t)$.
 
-### Inputs \(u(t)\)
+### Inputs $u(t)$
 
-\[ u(t) \in \mathcal{U} \]
+$$ u(t) \in \mathcal{U} $$
 
-Where \(\mathcal{U}\) includes:
+Where $\mathcal{U}$ includes:
 - Flow initiation events
-  \[ u_{\text{start}} = (\text{keyID}, \text{attestationObject}, \text{verifyRunID?}) \]
+  $$ u_{\text{start}} = (\text{keyID}, \text{attestationObject}, \text{verifyRunID?}) $$
 - ClientDataHash requests
-  \[ u_{\text{hash}} = (\text{flowHandle}, \text{verifyRunID?}) \]
+  $$ u_{\text{hash}} = (\text{flowHandle}, \text{verifyRunID?}) $$
 - Assertion submissions
-  \[ u_{\text{assert}} = (\text{flowHandle}, \text{assertionObject}, \text{verifyRunID?}) \]
+  $$ u_{\text{assert}} = (\text{flowHandle}, \text{assertionObject}, \text{verifyRunID?}) $$
 - State observation queries
-  \[ u_{\text{status}} = (\text{flowHandle}) \]
+  $$ u_{\text{status}} = (\text{flowHandle}) $$
 
-### Outputs \(y(t)\)
+### Outputs $y(t)$
 
-\[ y(t) \in \mathcal{Y} \]
+$$ y(t) \in \mathcal{Y} $$
 
 Including:
 - State observations
-  \[ y_{\text{state}} = (\text{flowHandle}, \text{flowID}, \text{state}, \text{terminal}, \text{timestamps}) \]
+  $$ y_{\text{state}} = (\text{flowHandle}, \text{flowID}, \text{state}, \text{terminal}, \text{timestamps}) $$
 - Backend responses
-  \[ y_{\text{backend}} = r(t) \text{ (verbatim JSON)} \]
+  $$ y_{\text{backend}} = r(t) \text{ (verbatim JSON)} $$
 - Deterministic error signals
-  \[ y_{\text{error}} \in \{\text{sequence\_violation}, \text{expired}, \text{not\_found}, \dots\} \]
+  $$ y_{\text{error}} \in \{\text{sequence\_violation}, \text{expired}, \text{not\_found}, \dots\} $$
 
-### State \(x(t)\)
+### State $x(t)$
 
-For each flowHandle \(h\):
+For each flowHandle $h$:
 
-\[ x_h(t) = \begin{bmatrix} \text{state}_h \\ \text{flowID}_h \\ \text{keyID}_h \\ \text{verifyRunID}_h \\ \text{timestamps}_h \\ \text{lastBackendStatus}_h \end{bmatrix} \]
+$$ x_h(t) = \begin{bmatrix} \text{state}_h \\ \text{flowID}_h \\ \text{keyID}_h \\ \text{verifyRunID}_h \\ \text{timestamps}_h \\ \text{lastBackendStatus}_h \end{bmatrix} $$
 
 Global auxiliary state:
 - Metrics counters
@@ -96,17 +96,17 @@ Global auxiliary state:
 
 State evolves according to:
 
-\[ x(t+1) = f\big(x(t), u(t), r(t)\big) \]
+$$ x(t+1) = f\big(x(t), u(t), r(t)\big) $$
 
 Where:
-- \(f\) is deterministic
-- \(r(t)\) is the backend response (if invoked)
+- $f$ is deterministic
+- $r(t)$ is the backend response (if invoked)
 - Past state is immutable
 - State history is append-only in effect
 
 Terminal states impose:
 
-\[ x(t+1) = x(t) \quad \forall u(t) \text{ that mutate state} \]
+$$ x(t+1) = x(t) \quad \forall u(t) \text{ that mutate state} $$
 
 ## 5. Discrete-Time Integrator Analogy (Supervisory, Not Linear)
 
@@ -114,15 +114,15 @@ This system behaves analogously to a discrete-time integrator, but over protocol
 
 **Continuous-time integrator (for reference)**
 
-\[ H(s) = \frac{1}{s} \]
+$$ H(s) = \frac{1}{s} $$
 
 **Discrete-time signal integrator**
 
-\[ x[k+1] = x[k] + u[k] \]
+$$ x[k+1] = x[k] + u[k] $$
 
 **Protocol-state integrator (this system)**
 
-\[ x(t+1) = \begin{cases} f(x(t), u(t), r(t)) & \text{if transition valid} \\ x(t) & \text{if transition invalid} \end{cases} \]
+$$ x(t+1) = \begin{cases} f(x(t), u(t), r(t)) & \text{if transition valid} \\ x(t) & \text{if transition invalid} \end{cases} $$
 
 Key differences:
 - No linear superposition
@@ -140,17 +140,17 @@ The state machine defines a constraint surface.
 
 **Valid transitions**
 
-\[ \begin{aligned} \text{created} &\rightarrow \text{registered} \\ \text{registered} &\rightarrow \text{hash\_issued} \\ \text{hash\_issued} &\rightarrow \text{verified} \\ \text{hash\_issued} &\rightarrow \text{rejected} \\ \forall s &\rightarrow \text{expired} \end{aligned} \]
+$$ \begin{aligned} \text{created} &\rightarrow \text{registered} \\ \text{registered} &\rightarrow \text{hash\_issued} \\ \text{hash\_issued} &\rightarrow \text{verified} \\ \text{hash\_issued} &\rightarrow \text{rejected} \\ \forall s &\rightarrow \text{expired} \end{aligned} $$
 
 **Constraint violations**
 
-Invalid transition \(u(t)\) from state \(x(t)\) yields:
+Invalid transition $u(t)$ from state $x(t)$ yields:
 
-\[ y(t) = \text{error}(x(t), u(t)) \]
+$$ y(t) = \text{error}(x(t), u(t)) $$
 
 and:
 
-\[ x(t+1) = x(t) \]
+$$ x(t+1) = x(t) $$
 
 No heuristics.
 No recovery.
@@ -160,9 +160,9 @@ No implicit correction.
 
 ### Feedback paths
 - Backend response feedback
-  \[ r(t) \rightarrow x(t+1) \]
+  $$ r(t) \rightarrow x(t+1) $$
 - Time-based expiration
-  \[ \text{now} > \text{expiresAt} \Rightarrow \text{expired} \]
+  $$ \text{now} > \text{expiresAt} \Rightarrow \text{expired} $$
 - Violation counters increment metrics
 
 ### Explicitly absent feedback
@@ -176,22 +176,22 @@ These signals do not exist in this system.
 
 Define an observation function:
 
-\[ y(t) = g(x(t)) \]
+$$ y(t) = g(x(t)) $$
 
 Where:
-- \(g\) is read-only
-- \(\frac{\partial x}{\partial y} = 0\) (no observer back-action)
+- $g$ is read-only
+- $\frac{\partial x}{\partial y} = 0$ (no observer back-action)
 - Observation does not affect state
 
 ## 8. Stability and Termination
 
 Terminal states are absorbing states:
 
-\[ x(t) \in \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} \Rightarrow x(t+1) = x(t) \]
+$$ x(t) \in \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} \Rightarrow x(t+1) = x(t) $$
 
 The system is bounded-input, bounded-state.
 
-\[ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t \]
+$$ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t $$
 
 Liveness is not guaranteed:
 - Flows may stall
@@ -203,7 +203,7 @@ This is intentional.
 
 The system explicitly excludes:
 
-\[ \begin{aligned} &\text{Cryptographic verification} \\ &\text{Trust decisions} \\ &\text{Authorization logic} \\ &\text{Policy evaluation} \\ &\text{Freshness guarantees beyond TTL} \\ &\text{Replay prevention beyond backend semantics} \end{aligned} \]
+$$ \begin{aligned} &\text{Cryptographic verification} \\ &\text{Trust decisions} \\ &\text{Authorization logic} \\ &\text{Policy evaluation} \\ &\text{Freshness guarantees beyond TTL} \\ &\text{Replay prevention beyond backend semantics} \end{aligned} $$
 
 These responsibilities belong to other subsystems.
 
@@ -239,7 +239,7 @@ flowchart TB
 **Key properties:**
 - Single accumulation point
 - No algebraic loops
-- Feedback enters only via backend responses \(r(t)\)
+- Feedback enters only via backend responses $r(t)$
 - No decision loops inside the integrator
 - Supervisory control structure
 
@@ -249,51 +249,51 @@ flowchart TB
 
 Define the set of valid state transitions:
 
-\[ \mathcal{T} = \{(\text{created}, \text{registered}), (\text{registered}, \text{hash\_issued}), (\text{hash\_issued}, \text{verified}), (\text{hash\_issued}, \text{rejected}), (s, \text{expired}) : s \in \mathcal{S}\} \]
+$$ \mathcal{T} = \{(\text{created}, \text{registered}), (\text{registered}, \text{hash\_issued}), (\text{hash\_issued}, \text{verified}), (\text{hash\_issued}, \text{rejected}), (s, \text{expired}) : s \in \mathcal{S}\} $$
 
-Where \(\mathcal{S}\) is the set of all non-terminal states.
+Where $\mathcal{S}$ is the set of all non-terminal states.
 
 ### Hard Constraint Enforcement
 
-For any input \(u(t)\) and current state \(x(t)\):
+For any input $u(t)$ and current state $x(t)$:
 
-\[ x(t+1) = \begin{cases} f(x(t), u(t), r(t)) & \text{if } (x(t), u(t)) \in \mathcal{T} \\ x(t) & \text{if } (x(t), u(t)) \notin \mathcal{T} \end{cases} \]
+$$ x(t+1) = \begin{cases} f(x(t), u(t), r(t)) & \text{if } (x(t), u(t)) \in \mathcal{T} \\ x(t) & \text{if } (x(t), u(t)) \notin \mathcal{T} \end{cases} $$
 
 Invalid transitions yield deterministic error signals:
 
-\[ y(t) = \text{error}(x(t), u(t)) \quad \text{when } (x(t), u(t)) \notin \mathcal{T} \]
+$$ y(t) = \text{error}(x(t), u(t)) \quad \text{when } (x(t), u(t)) \notin \mathcal{T} $$
 
 ### Terminal State Absorption
 
 Define terminal states:
 
-\[ \mathcal{X}_T = \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} \]
+$$ \mathcal{X}_T = \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} $$
 
 Terminal states are absorbing:
 
-\[ x(t) \in \mathcal{X}_T \Rightarrow x(t+1) = x(t) \quad \forall u(t) \]
+$$ x(t) \in \mathcal{X}_T \Rightarrow x(t+1) = x(t) \quad \forall u(t) $$
 
 ### Observer Constraint
 
-The observation operator \(g\) satisfies:
+The observation operator $g$ satisfies:
 
-\[ y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0 \]
+$$ y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0 $$
 
 Observation queries do not affect state evolution:
 
-\[ x(t+1) = f(x(t), u(t), r(t)) \quad \text{independent of } y(t') \text{ for } t' \le t \]
+$$ x(t+1) = f(x(t), u(t), r(t)) \quad \text{independent of } y(t') \text{ for } t' \le t $$
 
 ### Boundedness Constraint
 
 State space is finite and symbolic:
 
-\[ |\mathcal{X}| < \infty \]
+$$ |\mathcal{X}| < \infty $$
 
 Bounded-state property:
 
-\[ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t \]
+$$ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t $$
 
-Where \(\|x(t)\|\) denotes state space cardinality.
+Where $\|x(t)\|$ denotes state space cardinality.
 
 ## 12. Interpretation Notes
 
