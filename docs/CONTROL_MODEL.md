@@ -99,7 +99,7 @@ Including:
   Where $r(t)$ is verbatim JSON from backend.
 
 - Deterministic error signals:
-  $$ y_{\text{error}} \in \{e_{\text{seq}}, e_{\text{exp}}, e_{\text{not}}, \ldots\} $$
+  $$ y_{\text{error}} \in \left\{e_{\text{seq}}, e_{\text{exp}}, e_{\text{not}}, \ldots\right\} $$
   
   Where $e_{\text{seq}}$ is `sequence-violation`, $e_{\text{exp}}$ is `expired`, $e_{\text{not}}$ is `not-found`.
 
