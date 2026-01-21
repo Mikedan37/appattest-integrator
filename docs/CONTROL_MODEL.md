@@ -240,8 +240,12 @@ No implicit correction.
 ## 7. Feedback and Observation
 
 ### Feedback paths
-- Backend response feedback
-  $$ r(t) \rightarrow x(t+1) $$
+- Backend response feedback:
+
+$$
+r(t) \rightarrow x(t+1)
+$$
+
 - Time-based expiration:
 
 $$
