@@ -42,6 +42,20 @@ struct AssertResponse: Content {
     let terminal: Bool
 }
 
+/// Admission-limited error response.
+struct AdmissionLimitedResponse: Content {
+    let code: String
+    let message: String
+    let metadata: AdmissionLimitedMetadata
+}
+
+struct AdmissionLimitedMetadata: Content {
+    let current_ewma_ms: Double
+    let target_ms: Double
+    let current_rate_tps: Double
+    let retry_after_ms: Int
+}
+
 /// Status represents observed flow progress.
 /// It does not imply authorization, trust, or acceptance.
 struct FlowStatusResponse: Content {

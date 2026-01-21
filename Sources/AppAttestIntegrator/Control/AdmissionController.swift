@@ -3,68 +3,124 @@ import Foundation
 /// Admission controller using PID feedback to maintain target backend latency.
 ///
 /// Measures backend latency, computes admission rate using PID control,
-/// and enforces admission limits to prevent overload.
-struct AdmissionController {
+/// and enforces admission limits via token bucket to prevent overload.
+actor AdmissionController {
     /// PID controller
     private var pid: PIDController
     
     /// EWMA filter for latency smoothing
     private var latencyFilter: EWMAFilter
     
-    /// Current admission rate (flows per second)
+    /// Token bucket for rate limiting
+    private let tokenBucket: TokenBucket
+    
+    /// Current admission rate (tokens per second)
     private(set) var admissionRate: Double
     
     /// Target latency (milliseconds)
     let targetLatency: Double
     
+    /// Control update period (seconds)
+    let controlDT: Double
+    
+    /// Metrics collector
+    private let metrics: ControlMetrics
+    
     init(
-        targetLatency: Double = 100.0,
-        kp: Double = 10.0,
-        ki: Double = 1.0,
-        kd: Double = 0.1,
-        ewmaAlpha: Double = 0.1,
-        minAdmissionRate: Double = 1.0,
-        maxAdmissionRate: Double = 1000.0
+        targetLatency: Double,
+        kp: Double,
+        ki: Double,
+        kd: Double,
+        ewmaAlpha: Double,
+        minAdmissionRate: Double,
+        maxAdmissionRate: Double,
+        controlDT: Double,
+        burstMaxTokens: Int,
+        metrics: ControlMetrics
     ) {
         self.targetLatency = targetLatency
+        self.controlDT = controlDT
+        self.metrics = metrics
+        
         self.pid = PIDController(
             kp: kp,
             ki: ki,
             kd: kd,
             setpoint: targetLatency,
             minOutput: minAdmissionRate,
-            maxOutput: maxAdmissionRate
+            maxOutput: maxAdmissionRate,
+            dt: controlDT
         )
+        
         self.latencyFilter = EWMAFilter(alpha: ewmaAlpha)
         self.admissionRate = maxAdmissionRate  // Start at max, will adjust down if needed
+        
+        self.tokenBucket = TokenBucket(
+            maxTokens: Double(burstMaxTokens),
+            initialFillRate: maxAdmissionRate
+        )
     }
     
-    /// Update controller with new latency measurement.
+    /// Record latency measurement for a route.
     ///
-    /// - Parameter latency: Measured backend latency (milliseconds)
-    /// - Returns: New admission rate (flows per second)
-    mutating func update(latency: Double) -> Double {
+    /// - Parameters:
+    ///   - latency: Measured backend latency (milliseconds)
+    ///   - route: Route name (e.g., "/app-attest/register")
+    func recordLatency(_ latency: Double, route: String) async {
+        // Update route-specific latency metric
+        await metrics.updateRouteLatency(route: route, latency: latency)
+        
         // Filter latency measurement
         let filteredLatency = latencyFilter.update(measurement: latency)
+        await metrics.updateEWMALatency(filteredLatency)
         
         // Compute admission rate using PID
         admissionRate = pid.compute(measured: filteredLatency)
         
+        // Update token bucket fill rate
+        await tokenBucket.updateFillRate(admissionRate)
+        
+        // Update metrics
+        await metrics.updateAdmissionRate(admissionRate)
+        await metrics.updatePID(
+            error: pid.error,
+            pTerm: pid.pTerm,
+            iTerm: pid.iTerm,
+            dTerm: pid.dTerm
+        )
+        
+        let tokens = await tokenBucket.getTokenCount()
+        await metrics.updateTokenBucketTokens(tokens)
+    }
+    
+    /// Check if request should be admitted.
+    ///
+    /// - Returns: Tuple (admitted: Bool, retryAfterMS: Int?)
+    func tryAdmit() async -> (admitted: Bool, retryAfterMS: Int?) {
+        let admitted = await tokenBucket.tryConsume()
+        
+        if !admitted {
+            // Calculate retry-after: time until next token available
+            let fillRate = await tokenBucket.getFillRate()
+            let retryAfterSeconds = 1.0 / max(fillRate, 0.001)  // Avoid division by zero
+            let retryAfterMS = Int(retryAfterSeconds * 1000)
+            return (false, retryAfterMS)
+        }
+        
+        // Update metrics
+        let tokens = await tokenBucket.getTokenCount()
+        await metrics.updateTokenBucketTokens(tokens)
+        
+        return (true, nil)
+    }
+    
+    /// Get current admission rate (for logging).
+    func getAdmissionRate() -> Double {
         return admissionRate
     }
     
-    /// Check if new flow should be admitted.
-    ///
-    /// - Parameter currentTime: Current time (seconds since epoch)
-    /// - Returns: True if flow should be admitted
-    func shouldAdmit(currentTime: TimeInterval) -> Bool {
-        // Simple rate limiting: admit if below rate limit
-        // In production, use token bucket or sliding window
-        return true  // Placeholder - implement actual rate limiting
-    }
-    
     /// Reset controller state.
-    mutating func reset() {
+    func reset() {
         pid.reset()
         latencyFilter.reset()
         admissionRate = pid.maxOutput

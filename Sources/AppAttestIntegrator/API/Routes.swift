@@ -1,6 +1,31 @@
 import Foundation
 import Vapor
 
+/// Helper to create admission-limited error response.
+func admissionLimitedResponse(
+    ewma: Double,
+    target: Double,
+    rate: Double,
+    retryAfterMS: Int
+) throws -> Response {
+    let errorResponse = AdmissionLimitedResponse(
+        code: "admission_limited",
+        message: "Request rate limited by admission control",
+        metadata: AdmissionLimitedMetadata(
+            current_ewma_ms: ewma,
+            target_ms: target,
+            current_rate_tps: rate,
+            retry_after_ms: retryAfterMS
+        )
+    )
+    
+    let body = try JSONEncoder().encode(errorResponse)
+    var response = Response(status: .tooManyRequests, body: .init(data: body))
+    response.headers.add(name: "Retry-After", value: "\(retryAfterMS)")
+    response.headers.add(name: "Content-Type", value: "application/json")
+    return response
+}
+
 /// HTTP API routes for flow orchestration.
 /// See README "Explicit Non-Goals" section.
 func configureRoutes(
@@ -8,12 +33,41 @@ func configureRoutes(
     flowStore: FlowStore,
     backendClient: BackendClient,
     metrics: Metrics,
-    logger: AppLogger
+    logger: AppLogger,
+    admissionController: AdmissionController?,
+    controlMetrics: ControlMetrics?
 ) {
     let startTime = Date()
     
     // POST /v1/flows/start
-    app.post("v1", "flows", "start") { req async throws -> StartFlowResponse in
+    app.post("v1", "flows", "start") { req async throws -> Response in
+        // Check admission control
+        if let controller = admissionController {
+            let (admitted, retryAfterMS) = await controller.tryAdmit()
+            if !admitted {
+                let rate = await controller.getAdmissionRate()
+                let ewma = await controlMetrics?.backendLatencyEWMAMS ?? 0.0
+                let target = await controller.targetLatency
+                
+                await controlMetrics?.incrementAdmissionLimited(route: "/v1/flows/start")
+                
+                let errorResponse = AdmissionLimitedResponse(
+                    code: "admission_limited",
+                    message: "Request rate limited by admission control",
+                    metadata: AdmissionLimitedMetadata(
+                        current_ewma_ms: ewma,
+                        target_ms: target,
+                        current_rate_tps: rate,
+                        retry_after_ms: retryAfterMS ?? 1000
+                    )
+                )
+                
+                let response = try Response(status: .tooManyRequests, body: .init(data: try JSONEncoder().encode(errorResponse)))
+                response.headers.add(name: "Retry-After", value: "\(retryAfterMS ?? 1000)")
+                return response
+            }
+        }
+        
         let request = try req.content.decode(StartFlowRequest.self)
         
         // Generate flow identifiers
@@ -76,7 +130,7 @@ func configureRoutes(
             )
             
             let formatter = ISO8601DateFormatter()
-            return StartFlowResponse(
+            let response = StartFlowResponse(
                 flowHandle: flowHandle,
                 flowID: flowID,
                 keyID_base64: request.keyID_base64,
@@ -85,6 +139,7 @@ func configureRoutes(
                 issuedAt: formatter.string(from: registeredFlow.issuedAt),
                 expiresAt: registeredFlow.expiresAt.map { formatter.string(from: $0) }
             )
+            return try Response(status: .ok, body: .init(data: try JSONEncoder().encode(response)))
         } catch {
             logger.logBackendError(
                 endpoint: "/app-attest/register",
@@ -97,9 +152,28 @@ func configureRoutes(
     }
     
     // POST /v1/flows/{flowHandle}/client-data-hash
-    app.post("v1", "flows", ":flowHandle", "client-data-hash") { req async throws -> ClientDataHashResponse in
+    app.post("v1", "flows", ":flowHandle", "client-data-hash") { req async throws -> Response in
         guard let flowHandle = req.parameters.get("flowHandle") else {
             throw Abort(.badRequest, reason: "Missing flowHandle")
+        }
+        
+        // Check admission control
+        if let controller = admissionController {
+            let (admitted, retryAfterMS) = await controller.tryAdmit()
+            if !admitted {
+                let rate = await controller.getAdmissionRate()
+                let ewma = await controlMetrics?.backendLatencyEWMAMS ?? 0.0
+                let target = await controller.targetLatency
+                
+                await controlMetrics?.incrementAdmissionLimited(route: "/v1/flows/{flowHandle}/client-data-hash")
+                
+                return try admissionLimitedResponse(
+                    ewma: ewma,
+                    target: target,
+                    rate: rate,
+                    retryAfterMS: retryAfterMS ?? 1000
+                )
+            }
         }
         
         let request = try req.content.decode(ClientDataHashRequest.self)
@@ -148,11 +222,12 @@ func configureRoutes(
                 to: "hash_issued"
             )
             
-            return ClientDataHashResponse(
+            let response = ClientDataHashResponse(
                 clientDataHash_base64: backendResponse.clientDataHash_base64,
                 expiresAt: backendResponse.expiresAt,
                 state: "hash_issued"
             )
+            return try Response(status: .ok, body: .init(data: try JSONEncoder().encode(response)))
         } catch let error as FlowError {
             await metrics.incrementSequenceViolation()
             switch error {
@@ -177,9 +252,28 @@ func configureRoutes(
     }
     
     // POST /v1/flows/{flowHandle}/assert
-    app.post("v1", "flows", ":flowHandle", "assert") { req async throws -> AssertResponse in
+    app.post("v1", "flows", ":flowHandle", "assert") { req async throws -> Response in
         guard let flowHandle = req.parameters.get("flowHandle") else {
             throw Abort(.badRequest, reason: "Missing flowHandle")
+        }
+        
+        // Check admission control
+        if let controller = admissionController {
+            let (admitted, retryAfterMS) = await controller.tryAdmit()
+            if !admitted {
+                let rate = await controller.getAdmissionRate()
+                let ewma = await controlMetrics?.backendLatencyEWMAMS ?? 0.0
+                let target = await controller.targetLatency
+                
+                await controlMetrics?.incrementAdmissionLimited(route: "/v1/flows/{flowHandle}/assert")
+                
+                return try admissionLimitedResponse(
+                    ewma: ewma,
+                    target: target,
+                    rate: rate,
+                    retryAfterMS: retryAfterMS ?? 1000
+                )
+            }
         }
         
         let request = try req.content.decode(AssertRequest.self)
@@ -256,11 +350,12 @@ func configureRoutes(
             // This service does not interpret backend responses.
             // The response below is returned verbatim.
             // "verified" here means "backend reported verified", not "access allowed".
-            return AssertResponse(
+            let response = AssertResponse(
                 state: finalFlow.state.rawValue,
                 backend: rawJSON,
                 terminal: true
             )
+            return try Response(status: .ok, body: .init(data: try JSONEncoder().encode(response)))
         } catch let error as FlowError {
             await metrics.incrementSequenceViolation()
             switch error {
@@ -326,7 +421,12 @@ func configureRoutes(
     
     // GET /metrics
     app.get("metrics") { req async throws -> String in
-        return await metrics.getPrometheusMetrics()
+        var prometheus = await metrics.getPrometheusMetrics()
+        if let controlMetrics = controlMetrics {
+            let controlPrometheus = await controlMetrics.getPrometheusMetrics()
+            prometheus += "\n" + controlPrometheus
+        }
+        return prometheus
     }
 }
 

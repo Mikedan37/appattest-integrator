@@ -55,6 +55,24 @@ The integrator receives flow requests, forwards them to appattest-backend with c
 - `APP_ATTEST_DEBUG_LOG_ARTIFACTS`: Debug logging level (0=none, 1=lengths+SHA256, 2=full dumps, default: `0`)
 - `APP_ATTEST_BUILD_SHA256`: Build SHA256 for health endpoint (optional)
 
+### Admission Control (Optional)
+
+Admission control regulates flow admission based on observed backend latency to prevent retry storms and overload spirals. See [docs/ADMISSION_CONTROL_PID.md](docs/ADMISSION_CONTROL_PID.md) for details.
+
+Environment variables:
+- `APP_ATTEST_ADMISSION_CONTROL_ENABLED`: Enable admission control (default: `false`)
+- `APP_ATTEST_TARGET_LATENCY_MS`: Target latency in milliseconds (default: `200`)
+- `APP_ATTEST_EWMA_ALPHA`: EWMA smoothing factor (default: `0.2`)
+- `APP_ATTEST_PID_KP`: PID proportional gain (default: `0.5`)
+- `APP_ATTEST_PID_KI`: PID integral gain (default: `0.05`)
+- `APP_ATTEST_PID_KD`: PID derivative gain (default: `0.1`)
+- `APP_ATTEST_CONTROL_DT_MS`: Control update period in milliseconds (default: `500`)
+- `APP_ATTEST_RATE_MIN_TPS`: Minimum admission rate in tokens per second (default: `1`)
+- `APP_ATTEST_RATE_MAX_TPS`: Maximum admission rate in tokens per second (default: `200`)
+- `APP_ATTEST_BURST_MAX_TOKENS`: Maximum burst tokens (default: `50`)
+
+When admission control is enabled and rate limited, endpoints return HTTP 429 with `code="admission_limited"` and metadata including current EWMA latency, target latency, current rate, and retry-after time.
+
 ### Build
 
 ```bash

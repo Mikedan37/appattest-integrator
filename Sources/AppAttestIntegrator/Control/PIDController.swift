@@ -37,6 +37,12 @@ struct PIDController {
     private var previousError: Double = 0.0
     private var previousOutput: Double = 0.0
     
+    /// Last computed P, I, D terms (for observability)
+    private(set) var pTerm: Double = 0.0
+    private(set) var iTerm: Double = 0.0
+    private(set) var dTerm: Double = 0.0
+    private(set) var error: Double = 0.0
+    
     init(
         kp: Double = 10.0,
         ki: Double = 1.0,
@@ -60,27 +66,31 @@ struct PIDController {
     /// - Parameter measured: Measured output (EWMA latency)
     /// - Returns: Control output (admission rate), clipped to [minOutput, maxOutput]
     mutating func compute(measured: Double) -> Double {
-        let error = setpoint - measured
+        error = setpoint - measured
         
-        // Proportional term
-        let pTerm = kp * error
+        // Proportional term: P(t) = Kp * e(t)
+        pTerm = kp * error
         
-        // Integral term (with anti-windup)
+        // Integral term: I(t) = I(t-1) + Ki * e(t) * Δt
         integral += error * dt
-        let iTerm = ki * integral
+        iTerm = ki * integral
         
-        // Derivative term
-        let dTerm = kd * (error - previousError) / dt
+        // Derivative term: D(t) = Kd * (e(t) - e(t-1)) / Δt
+        dTerm = kd * (error - previousError) / dt
         
-        // PID output
+        // PID output: u(t) = P(t) + I(t) + D(t)
         let output = pTerm + iTerm + dTerm
         
-        // Saturation (anti-windup)
+        // Saturation: u'(t) = clip(u(t), u_min, u_max)
         let clippedOutput = max(minOutput, min(maxOutput, output))
         
-        // If saturated, disable integral accumulation to prevent windup
+        // Anti-windup: if saturated, back-calculate integrator to prevent windup
         if output != clippedOutput {
-            integral = previousOutput / ki  // Reset integral to prevent windup
+            // Back-calculate: I_term should be such that P + I + D = clipped
+            // I_term = (clipped - P - D) / Ki
+            let desiredITerm = (clippedOutput - pTerm - dTerm) / ki
+            integral = desiredITerm / dt  // Adjust integral to match desired I term
+            iTerm = ki * integral
         }
         
         previousError = error
@@ -94,6 +104,10 @@ struct PIDController {
         integral = 0.0
         previousError = 0.0
         previousOutput = 0.0
+        pTerm = 0.0
+        iTerm = 0.0
+        dTerm = 0.0
+        error = 0.0
     }
 }
 
