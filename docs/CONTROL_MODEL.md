@@ -3,7 +3,7 @@
 ## 1. Scope
 
 This document models appattest-integrator as a discrete-time control system and protocol orchestration layer.
-This is supervisory control over discrete protocol events, not continuous-time feedback control.
+This is supervisory control over discrete protocol events, not continuous-time feedback control, PID regulation, or signal control.
 
 The model characterizes:
 - Discrete-time state accumulation over protocol events
@@ -127,9 +127,10 @@ Key differences:
 - No scalar accumulation
 - State space is finite and symbolic
 - Integration occurs over event history
+- No continuous-time transfer functions
 
-This is not signal processing.
-It is discrete protocol-state accumulation.
+This is not signal processing or linear control.
+It is discrete protocol-state accumulation under supervisory constraints.
 
 ## 6. State Transitions as Hard Constraints
 
@@ -177,7 +178,7 @@ Define an observation function:
 
 Where:
 - \(g\) is read-only
-- \(\frac{\partial x}{\partial y} = 0\)
+- \(\frac{\partial x}{\partial y} = 0\) (no observer back-action)
 - Observation does not affect state
 
 ## 8. Stability and Termination
@@ -218,7 +219,7 @@ These responsibilities belong to other subsystems.
 │        Product Backend     │─────┘
 │  (business logic, policy) │
 └─────────────┬──────────────┘
-              │ orchestration API
+              │ u(t)
               ▼
 ┌──────────────────────────────────────────────────────────┐
 │                    appattest-integrator                  │
@@ -294,10 +295,11 @@ flowchart TB
 ```
 
 **Key properties:**
-- Single control point
-- No circular dependency
-- Feedback enters only via backend responses
+- Single accumulation point
+- No algebraic loops
+- Feedback enters only via backend responses \(r(t)\)
 - No decision loops inside the integrator
+- Supervisory control structure
 
 ## 11. Interpretation Notes
 
