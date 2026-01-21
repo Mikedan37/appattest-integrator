@@ -47,7 +47,7 @@ Where:
 - \(K_p\): Proportional gain
 - \(K_i\): Integral gain
 - \(K_d\): Derivative gain
-- \(\Delta t\): Sampling period
+- \(\Delta t\): Sampling period (control interval at which backend latency is measured and admission decisions are applied, e.g., per second or per request batch)
 
 ### Saturation (Anti-Windup)
 
@@ -70,6 +70,14 @@ Where:
 - \(b\): Latency per concurrent flow
 - \(n(t)\): Number of concurrent flows
 - \(d(t)\): Disturbance (network jitter, CPU spikes, client retries)
+
+Concurrency evolves according to:
+
+\[ n(t+1) = n(t) + u'(t) - c(t) \]
+
+Where:
+- \(u'(t)\): Admission rate (flows per interval)
+- \(c(t)\): Completion rate (completed flows per interval)
 
 ### Closed-Loop Feedback
 

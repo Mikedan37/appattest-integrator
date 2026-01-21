@@ -5,6 +5,8 @@
 This document models appattest-integrator as a discrete-time control system and protocol orchestration layer.
 This is supervisory control over discrete protocol events, not continuous-time feedback control, PID regulation, or signal control.
 
+This document models supervisory control; feedback control (e.g., PID) is introduced separately as an optional reliability mechanism layered on top.
+
 The model characterizes:
 - Discrete-time state accumulation over protocol events
 - Deterministic constraint enforcement on state transitions
