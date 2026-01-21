@@ -61,19 +61,20 @@ There is no continuous-time signal $x(t)$.
 $$ u(t) \in \mathcal{U} $$
 
 Where $\mathcal{U}$ includes:
-- Flow initiation events
-  $$ u_{\text{start}} = (\text{keyID}, \text{attestationObject}, \text{verifyRunID?}) $$
 
-Where `verifyRunID` is optional.
-- ClientDataHash requests
-  $$ u_{\text{hash}} = (\text{flowHandle}, \text{verifyRunID?}) $$
+- Flow initiation events:
+  $$ u_{\text{start}} = (\text{keyID}, \text{attestationObject}, \text{verifyRunID}) $$
+  Where `verifyRunID` is optional.
 
-Where `verifyRunID` is optional.
-- Assertion submissions
-  $$ u_{\text{assert}} = (\text{flowHandle}, \text{assertionObject}, \text{verifyRunID?}) $$
+- ClientDataHash requests:
+  $$ u_{\text{hash}} = (\text{flowHandle}, \text{verifyRunID}) $$
+  Where `verifyRunID` is optional.
 
-Where `verifyRunID` is optional.
-- State observation queries
+- Assertion submissions:
+  $$ u_{\text{assert}} = (\text{flowHandle}, \text{assertionObject}, \text{verifyRunID}) $$
+  Where `verifyRunID` is optional.
+
+- State observation queries:
   $$ u_{\text{status}} = (\text{flowHandle}) $$
 
 ### Outputs $y(t)$
@@ -81,11 +82,14 @@ Where `verifyRunID` is optional.
 $$ y(t) \in \mathcal{Y} $$
 
 Including:
-- State observations
+
+- State observations:
   $$ y_{\text{state}} = (\text{flowHandle}, \text{flowID}, \text{state}, \text{terminal}, \text{timestamps}) $$
-- Backend responses
+
+- Backend responses:
   $$ y_{\text{backend}} = r(t) \text{ (verbatim JSON)} $$
-- Deterministic error signals
+
+- Deterministic error signals:
   $$ y_{\text{error}} \in \{\text{sequence-violation}, \text{expired}, \text{not-found}, \dots\} $$
 
 Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
