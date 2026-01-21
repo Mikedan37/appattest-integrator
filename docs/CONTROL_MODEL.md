@@ -63,24 +63,46 @@ $$ u(t) \in \mathcal{U} $$
 Where $\mathcal{U}$ includes:
 
 - Flow initiation events:
-  $$ u_{\text{start}} = (k_1, a_1, v_1) $$
-  
-  Where $k_1$ is `keyID`, $a_1$ is `attestationObject`, $v_1$ is `verifyRunID` (optional).
+
+$$
+u_{\texttt{start}} =
+(\texttt{keyID}, \texttt{attestationObject}, \texttt{verifyRunID?})
+$$
+
+Where:
+- `keyID` is the App Attest key identifier
+- `attestationObject` is the attestation artifact
+- `verifyRunID` is optional
 
 - ClientDataHash requests:
-  $$ u_{\text{hash}} = (f_1, v_1) $$
-  
-  Where $f_1$ is `flowHandle`, $v_1$ is `verifyRunID` (optional).
+
+$$
+u_{\texttt{hash}} =
+(\texttt{flowHandle}, \texttt{verifyRunID?})
+$$
+
+Where:
+- `flowHandle` is the integrator-scoped handle
+- `verifyRunID` is optional
 
 - Assertion submissions:
-  $$ u_{\text{assert}} = (f_1, a_1, v_1) $$
-  
-  Where $f_1$ is `flowHandle`, $a_1$ is `assertionObject`, $v_1$ is `verifyRunID` (optional).
+
+$$
+u_{\texttt{assert}} =
+(\texttt{flowHandle}, \texttt{assertionObject}, \texttt{verifyRunID?})
+$$
+
+Where:
+- `flowHandle` identifies the flow
+- `assertionObject` is the assertion artifact
+- `verifyRunID` is optional
 
 - State observation queries:
-  $$ u_{\text{status}} = (f_1) $$
-  
-  Where $f_1$ is `flowHandle`.
+
+$$
+u_{\texttt{status}} =
+(\texttt{flowHandle})
+$$
 
 ### Outputs $y(t)$
 
@@ -89,19 +111,35 @@ $$ y(t) \in \mathcal{Y} $$
 Including:
 
 - State observations:
-  $$ y_{\text{state}} = (f_1, f_2, s, t_1, \tau) $$
-  
-  Where $f_1$ is `flowHandle`, $f_2$ is `flowID`, $s$ is `state`, $t_1$ is `terminal`, $\tau$ is `timestamps`.
+
+$$
+y_{\texttt{state}} =
+(\texttt{flowHandle}, \texttt{flowID}, s, t_{\texttt{terminal}}, \tau)
+$$
+
+Where:
+- `flowHandle` is the integrator handle
+- `flowID` is the backend-authored identifier
+- $s$ is the protocol state
+- $t_{\texttt{terminal}}$ indicates terminal status
+- $\tau$ represents timestamps
 
 - Backend responses:
-  $$ y_{\text{backend}} = r(t) $$
-  
-  Where $r(t)$ is verbatim JSON from backend.
+
+$$
+y_{\texttt{backend}} = r(t)
+$$
+
+Where:
+- $r(t)$ is the verbatim backend JSON response
 
 - Deterministic error signals:
-  $$ y_{\text{error}} \in \{e_1, e_2, e_3, \ldots\} $$
-  
-  Where $e_1$ is `sequence-violation`, $e_2$ is `expired`, $e_3$ is `not-found`.
+
+$$
+y_{\texttt{error}} \in
+\{\texttt{sequence\_violation}, \texttt{expired},
+\texttt{not\_found}, \ldots\}
+$$
 
 Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
 
