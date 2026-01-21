@@ -208,60 +208,67 @@ These responsibilities belong to other subsystems.
 ## 10. Control-System Block Diagram
 
 ```
-                     ┌────────────────────────────┐
-                     │        Mobile Client        │
-                     │  (App Attest event source)  │
-                     └─────────────┬──────────────┘
-                                   │   u(t)
-                                   │   protocol events
-                                   ▼
-┌────────────────────────────┐     │
-│        Product Backend     │─────┘
-│  (business logic, policy) │
-└─────────────┬──────────────┘
-              │ u(t)
-              ▼
-┌──────────────────────────────────────────────────────────┐
-│                    appattest-integrator                  │
-│                    (CONTROL PLANE)                       │
-│                                                          │
-│   State accumulator: x(t)                                │
-│   ────────────────────────────────────────────────       │
-│   x(t+1) = f(x(t), u(t), r(t))                            │
-│                                                          │
-│   • Enforces sequencing constraints                      │
-│   • Correlates flowHandle ↔ flowID ↔ verifyRunID         │
-│   • Records backend responses verbatim                   │
-│   • Exposes state observation y(t) = g(x(t))             │
-│                                                          │
-│   NO cryptography                                        │
-│   NO trust / authorization                               │
-│   NO policy logic                                        │
-└─────────────┬────────────────────────────────────────────┘
-              │ r(t)
-              │ backend responses (verbatim)
-              ▼
-┌──────────────────────────────────────────────────────────┐
-│                   appattest-backend                      │
-│                (VERIFICATION AUTHORITY)                  │
-│                                                          │
-│   • Binding enforcement                                  │
-│   • Cryptographic verification                           │
-│   • Signature normalization                              │
-│                                                          │
-│   Produces authoritative verification artifacts          │
-└─────────────┬────────────────────────────────────────────┘
-              │
-              ▼
-┌──────────────────────────────────────────────────────────┐
-│        appattest-decoder / appattest-validator           │
-│                   (DATA PLANE)                           │
-│                                                          │
-│   • Structural parsing (CBOR, ASN.1, COSE)               │
-│   • Cryptographic primitives (ECDSA math)                │
-│                                                          │
-│   Stateless, pure functions                              │
-└──────────────────────────────────────────────────────────┘
+                    ┌─────────────────────┐
+                    │   Mobile Client     │
+                    │  Protocol Events    │
+                    └──────────┬──────────┘
+                               │
+                               │ u(t)
+                               │
+                    ┌──────────▼──────────┐
+                    │   Product Backend   │
+                    │   Policy / Logic    │
+                    └──────────┬──────────┘
+                               │
+                               │ u(t)
+                               │
+        ┌───────────────────────▼───────────────────────┐
+        │                                                 │
+        │          appattest-integrator                  │
+        │          ─────────────────────                  │
+        │                                                 │
+        │          State Evolution:                      │
+        │          x(t+1) = f(x(t), u(t), r(t))         │
+        │                                                 │
+        │          Observation:                          │
+        │          y(t) = g(x(t))                        │
+        │                                                 │
+        │          CONTROL PLANE                         │
+        │          • Discrete-time state accumulation    │
+        │          • Constraint enforcement               │
+        │          • Protocol correlation                │
+        │                                                 │
+        └───────────┬───────────────────────┬───────────┘
+                    │                       │
+                    │ r(t)                  │ y(t)
+                    │                       │
+        ┌───────────▼───────────┐           │
+        │                       │           │
+        │  appattest-backend    │           │
+        │  ─────────────────    │           │
+        │                       │           │
+        │  VERIFICATION         │           │
+        │  AUTHORITY            │           │
+        │                       │           │
+        └───────────┬────────────┘           │
+                    │                       │
+                    │                       │
+        ┌───────────▼────────────┐          │
+        │                        │          │
+        │  Decoder / Validator   │          │
+        │  ──────────────────    │          │
+        │                        │          │
+        │  DATA PLANE            │          │
+        │  • Structural parsing   │          │
+        │  • Cryptographic ops    │          │
+        │                        │          │
+        └────────────────────────┘          │
+                                            │
+                                            │
+                    ┌───────────────────────┘
+                    │
+                    │
+                    ▼
 ```
 
 ### Mermaid Diagram
