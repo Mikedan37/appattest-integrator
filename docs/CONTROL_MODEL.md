@@ -207,85 +207,31 @@ These responsibilities belong to other subsystems.
 
 ## 10. Control-System Block Diagram
 
-```
-                    ┌─────────────────────┐
-                    │   Mobile Client     │
-                    │  Protocol Events    │
-                    └──────────┬──────────┘
-                               │
-                               │ u(t)
-                               │
-                    ┌──────────▼──────────┐
-                    │   Product Backend   │
-                    │   Policy / Logic    │
-                    └──────────┬──────────┘
-                               │
-                               │ u(t)
-                               │
-        ┌───────────────────────▼───────────────────────┐
-        │                                                 │
-        │          appattest-integrator                  │
-        │          ─────────────────────                  │
-        │                                                 │
-        │          State Evolution:                      │
-        │          x(t+1) = f(x(t), u(t), r(t))         │
-        │                                                 │
-        │          Observation:                          │
-        │          y(t) = g(x(t))                        │
-        │                                                 │
-        │          CONTROL PLANE                         │
-        │          • Discrete-time state accumulation    │
-        │          • Constraint enforcement               │
-        │          • Protocol correlation                │
-        │                                                 │
-        └───────────┬───────────────────────┬───────────┘
-                    │                       │
-                    │ r(t)                  │ y(t)
-                    │                       │
-        ┌───────────▼───────────┐           │
-        │                       │           │
-        │  appattest-backend    │           │
-        │  ─────────────────    │           │
-        │                       │           │
-        │  VERIFICATION         │           │
-        │  AUTHORITY            │           │
-        │                       │           │
-        └───────────┬────────────┘           │
-                    │                       │
-                    │                       │
-        ┌───────────▼────────────┐          │
-        │                        │          │
-        │  Decoder / Validator   │          │
-        │  ──────────────────    │          │
-        │                        │          │
-        │  DATA PLANE            │          │
-        │  • Structural parsing   │          │
-        │  • Cryptographic ops    │          │
-        │                        │          │
-        └────────────────────────┘          │
-                                            │
-                                            │
-                    ┌───────────────────────┘
-                    │
-                    │
-                    ▼
-```
-
-### Mermaid Diagram
-
 ```mermaid
 flowchart TB
-    MC[Mobile Client]
-    PB[Product Backend]
-    INT[appattest-integrator<br/>CONTROL PLANE]
-    BE[appattest-backend<br/>VERIFICATION AUTHORITY]
-    DP[Decoder / Validator<br/>DATA PLANE]
-
-    MC -->|u(t)| PB
-    PB -->|u(t)| INT
-    INT -->|r(t)| BE
+    subgraph External["External Actors"]
+        MC[Mobile Client<br/>Protocol Events]
+    end
+    
+    subgraph Control["Control Plane"]
+        PB[Product Backend<br/>Policy / Logic]
+        INT["appattest-integrator<br/>State: x<br/>x(t+1) = f(x, u, r)<br/>y = g(x)"]
+    end
+    
+    subgraph Data["Data Plane"]
+        BE[appattest-backend<br/>VERIFICATION AUTHORITY]
+        DP[Decoder / Validator<br/>Parsing • Crypto Primitives]
+    end
+    
+    MC -->|"u(t)"| PB
+    PB -->|"u(t)"| INT
+    INT -->|"r(t)"| BE
     BE --> DP
-    INT -->|y(t)| PB
+    INT -->|"y(t)"| PB
+    
+    style INT fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    style BE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style DP fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
 ```
 
 **Key properties:**
