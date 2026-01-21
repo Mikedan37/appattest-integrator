@@ -268,23 +268,14 @@ These responsibilities belong to other subsystems.
 
 ```mermaid
 flowchart TB
-    MC[Mobile Client<br/>(Protocol Event Source)]
-    PB[Product Backend<br/>(Policy / Authorization)]
+    MC["Mobile Client\n(Protocol Event Source)"]
+    PB["Product Backend\n(Policy / Authorization)"]
     
-    INT[appattest-integrator<br/><b>Control Plane</b><br/>
-        x(t+1) = f(x(t), u(t), r(t))<br/>
-        y(t) = g(x(t))<br/>
-        <i>Sequencing • Correlation • Observation</i>
-    ]
+    INT["appattest-integrator\nCONTROL PLANE\nx(t+1) = f(x(t), u(t), r(t))\ny(t) = g(x(t))\nSequencing • Correlation • Observation"]
 
-    BE[appattest-backend<br/><b>Verification Authority</b><br/>
-       Cryptographic Verification<br/>
-       Binding Enforcement
-    ]
+    BE["appattest-backend\nVERIFICATION AUTHORITY\nCryptographic Verification\nBinding Enforcement"]
 
-    DP[Decoder / Validator<br/><b>Data Plane</b><br/>
-       Parsing • Crypto Primitives
-    ]
+    DP["Decoder / Validator\nDATA PLANE\nParsing • Crypto Primitives"]
 
     MC -->|u(t)| PB
     PB -->|u(t)| INT
