@@ -68,7 +68,7 @@ flowchart TB
     end
     
     R -->|r| SUM
-    SUM -->|e(t) = r - y(t)| PID
+    SUM -->|error| PID
     PID -->|u(t)| SAT
     SAT -->|u'(t)| TB
     TB -->|λ(t)| ADM
@@ -294,7 +294,7 @@ Controller output is bounded by saturation limits: $u_{\min} \le u'(t) \le u_{\m
 
 The control loop is closed as follows:
 
-1. **Measurement:** Backend latency $L(t)$ is measured per request in `BackendClient` (register, client-data-hash, verify routes).
+1. **Measurement:** Backend latency $L(t)$ is measured per request in `BackendClient` (register, `client-data-hash`, verify routes).
 
 2. **Filtering:** Measured latency is filtered via EWMA: $y(t) = \alpha L(t) + (1-\alpha) y(t-1)$.
 

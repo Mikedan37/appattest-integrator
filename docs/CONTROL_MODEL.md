@@ -63,10 +63,16 @@ $$ u(t) \in \mathcal{U} $$
 Where $\mathcal{U}$ includes:
 - Flow initiation events
   $$ u_{\text{start}} = (\text{keyID}, \text{attestationObject}, \text{verifyRunID?}) $$
+
+Where `verifyRunID` is optional.
 - ClientDataHash requests
   $$ u_{\text{hash}} = (\text{flowHandle}, \text{verifyRunID?}) $$
+
+Where `verifyRunID` is optional.
 - Assertion submissions
   $$ u_{\text{assert}} = (\text{flowHandle}, \text{assertionObject}, \text{verifyRunID?}) $$
+
+Where `verifyRunID` is optional.
 - State observation queries
   $$ u_{\text{status}} = (\text{flowHandle}) $$
 
@@ -82,11 +88,15 @@ Including:
 - Deterministic error signals
   $$ y_{\text{error}} \in \{\text{sequence\_violation}, \text{expired}, \text{not\_found}, \dots\} $$
 
+Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
+
 ### State $x(t)$
 
 For each flowHandle $h$:
 
 $$ x_h(t) = \begin{bmatrix} \text{state}_h \\ \text{flowID}_h \\ \text{keyID}_h \\ \text{verifyRunID}_h \\ \text{timestamps}_h \\ \text{lastBackendStatus}_h \end{bmatrix} $$
+
+Where `verifyRunID` is optional and `lastBackendStatus` stores backend-reported status.
 
 Global auxiliary state:
 - Metrics counters
@@ -140,7 +150,21 @@ The state machine defines a constraint surface.
 
 **Valid transitions**
 
-$$ \begin{aligned} \text{created} &\rightarrow \text{registered} \\ \text{registered} &\rightarrow \text{hash\_issued} \\ \text{hash\_issued} &\rightarrow \text{verified} \\ \text{hash\_issued} &\rightarrow \text{rejected} \\ \forall s &\rightarrow \text{expired} \end{aligned} $$
+$$
+\text{created} \rightarrow \text{registered}
+$$
+
+$$
+\text{registered} \rightarrow \text{hash\_issued}
+$$
+
+$$
+\text{hash\_issued} \rightarrow \text{verified} \;\;|\;\; \text{rejected}
+$$
+
+$$
+\forall s \rightarrow \text{expired}
+$$
 
 **Constraint violations**
 
@@ -163,6 +187,8 @@ No implicit correction.
   $$ r(t) \rightarrow x(t+1) $$
 - Time-based expiration
   $$ \text{now} > \text{expiresAt} \Rightarrow \text{expired} $$
+
+Where `expiresAt` is a timestamp field in state.
 - Violation counters increment metrics
 
 ### Explicitly absent feedback
@@ -189,9 +215,11 @@ Terminal states are absorbing states:
 
 $$ x(t) \in \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} \Rightarrow x(t+1) = x(t) $$
 
+Where terminal states are: `verified`, `rejected`, `expired`, `error`.
+
 The system is bounded-input, bounded-state.
 
-$$ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t $$
+$$ |\mathcal{X}| < \infty \;\Rightarrow\; x(t) \in \mathcal{X} \;\forall t $$
 
 Liveness is not guaranteed:
 - Flows may stall
@@ -203,7 +231,29 @@ This is intentional.
 
 The system explicitly excludes:
 
-$$ \begin{aligned} &\text{Cryptographic verification} \\ &\text{Trust decisions} \\ &\text{Authorization logic} \\ &\text{Policy evaluation} \\ &\text{Freshness guarantees beyond TTL} \\ &\text{Replay prevention beyond backend semantics} \end{aligned} $$
+$$
+\text{Cryptographic verification}
+$$
+
+$$
+\text{Trust decisions}
+$$
+
+$$
+\text{Authorization logic}
+$$
+
+$$
+\text{Policy evaluation}
+$$
+
+$$
+\text{Freshness guarantees beyond TTL}
+$$
+
+$$
+\text{Replay prevention beyond backend semantics}
+$$
 
 These responsibilities belong to other subsystems.
 
@@ -217,7 +267,10 @@ flowchart TB
     
     subgraph Control["Control Plane"]
         PB[Product Backend<br/>Policy / Logic]
-        INT["appattest-integrator<br/>State: x<br/>x(t+1) = f(x, u, r)<br/>y = g(x)"]
+        INT["appattest-integrator<br/>
+State: x<br/>
+State update: f(x,u,r)<br/>
+Observation: g(x)"]
     end
     
     subgraph Data["Data Plane"]
@@ -251,6 +304,8 @@ Define the set of valid state transitions:
 
 $$ \mathcal{T} = \{(\text{created}, \text{registered}), (\text{registered}, \text{hash\_issued}), (\text{hash\_issued}, \text{verified}), (\text{hash\_issued}, \text{rejected}), (s, \text{expired}) : s \in \mathcal{S}\} $$
 
+Where state names are: `created`, `registered`, `hash_issued`, `verified`, `rejected`, `expired`, `error`.
+
 Where $\mathcal{S}$ is the set of all non-terminal states.
 
 ### Hard Constraint Enforcement
@@ -268,6 +323,8 @@ $$ y(t) = \text{error}(x(t), u(t)) \quad \text{when } (x(t), u(t)) \notin \mathc
 Define terminal states:
 
 $$ \mathcal{X}_T = \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} $$
+
+Terminal states: `verified`, `rejected`, `expired`, `error`.
 
 Terminal states are absorbing:
 
@@ -291,9 +348,9 @@ $$ |\mathcal{X}| < \infty $$
 
 Bounded-state property:
 
-$$ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t $$
+$$ |\mathcal{X}| < \infty \;\Rightarrow\; x(t) \in \mathcal{X} \;\forall t $$
 
-Where $\|x(t)\|$ denotes state space cardinality.
+State space $\mathcal{X}$ is finite and symbolic.
 
 ## 12. Interpretation Notes
 
