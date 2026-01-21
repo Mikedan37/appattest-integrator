@@ -3,6 +3,7 @@
 ## 1. Scope
 
 This document models appattest-integrator as a discrete-time control system and protocol orchestration layer.
+This is supervisory control over discrete protocol events, not continuous-time feedback control.
 
 The model characterizes:
 - Discrete-time state accumulation over protocol events
@@ -105,7 +106,7 @@ Terminal states impose:
 
 \[ x(t+1) = x(t) \quad \forall u(t) \text{ that mutate state} \]
 
-## 5. Discrete-Time Integrator Analogy
+## 5. Discrete-Time Integrator Analogy (Supervisory, Not Linear)
 
 This system behaves analogously to a discrete-time integrator, but over protocol state, not signal amplitude.
 
@@ -186,6 +187,8 @@ Terminal states are absorbing states:
 \[ x(t) \in \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} \Rightarrow x(t+1) = x(t) \]
 
 The system is bounded-input, bounded-state.
+
+\[ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t \]
 
 Liveness is not guaranteed:
 - Flows may stall
@@ -283,11 +286,11 @@ flowchart TB
     ]
 
     MC -->|u(t)| PB
-    PB -->|Flow API| INT
+    PB -->|u(t)| INT
     INT -->|r(t)| BE
     BE --> DP
 
-    INT -->|State Observation| PB
+    INT -->|y(t)| PB
 ```
 
 **Key properties:**
