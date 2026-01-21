@@ -139,7 +139,7 @@ func configureRoutes(
                 issuedAt: formatter.string(from: registeredFlow.issuedAt),
                 expiresAt: registeredFlow.expiresAt.map { formatter.string(from: $0) }
             )
-            return try Response(status: .ok, body: .init(data: try JSONEncoder().encode(response)))
+            return try response.encodeResponse(for: req)
         } catch {
             logger.logBackendError(
                 endpoint: "/app-attest/register",
@@ -227,7 +227,7 @@ func configureRoutes(
                 expiresAt: backendResponse.expiresAt,
                 state: "hash_issued"
             )
-            return try Response(status: .ok, body: .init(data: try JSONEncoder().encode(response)))
+            return try response.encodeResponse(for: req)
         } catch let error as FlowError {
             await metrics.incrementSequenceViolation()
             switch error {
@@ -355,7 +355,7 @@ func configureRoutes(
                 backend: rawJSON,
                 terminal: true
             )
-            return try Response(status: .ok, body: .init(data: try JSONEncoder().encode(response)))
+            return try response.encodeResponse(for: req)
         } catch let error as FlowError {
             await metrics.incrementSequenceViolation()
             switch error {
