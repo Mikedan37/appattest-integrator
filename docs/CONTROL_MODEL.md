@@ -63,24 +63,24 @@ $$ u(t) \in \mathcal{U} $$
 Where $\mathcal{U}$ includes:
 
 - Flow initiation events:
-  $$ u_{\text{start}} = (k_{\text{ID}}, a_{\text{obj}}, v_{\text{RunID}}) $$
+  $$ u_{\text{start}} = (k_1, a_1, v_1) $$
   
-  Where $k_{\text{ID}}$ is `keyID`, $a_{\text{obj}}$ is `attestationObject`, $v_{\text{RunID}}$ is `verifyRunID` (optional).
+  Where $k_1$ is `keyID`, $a_1$ is `attestationObject`, $v_1$ is `verifyRunID` (optional).
 
 - ClientDataHash requests:
-  $$ u_{\text{hash}} = (f_{\text{Handle}}, v_{\text{RunID}}) $$
+  $$ u_{\text{hash}} = (f_1, v_1) $$
   
-  Where $f_{\text{Handle}}$ is `flowHandle`, $v_{\text{RunID}}$ is `verifyRunID` (optional).
+  Where $f_1$ is `flowHandle`, $v_1$ is `verifyRunID` (optional).
 
 - Assertion submissions:
-  $$ u_{\text{assert}} = (f_{\text{Handle}}, a_{\text{obj}}, v_{\text{RunID}}) $$
+  $$ u_{\text{assert}} = (f_1, a_1, v_1) $$
   
-  Where $f_{\text{Handle}}$ is `flowHandle`, $a_{\text{obj}}$ is `assertionObject`, $v_{\text{RunID}}$ is `verifyRunID` (optional).
+  Where $f_1$ is `flowHandle`, $a_1$ is `assertionObject`, $v_1$ is `verifyRunID` (optional).
 
 - State observation queries:
-  $$ u_{\text{status}} = (f_{\text{Handle}}) $$
+  $$ u_{\text{status}} = (f_1) $$
   
-  Where $f_{\text{Handle}}$ is `flowHandle`.
+  Where $f_1$ is `flowHandle`.
 
 ### Outputs $y(t)$
 
@@ -89,9 +89,9 @@ $$ y(t) \in \mathcal{Y} $$
 Including:
 
 - State observations:
-  $$ y_{\text{state}} = (f_{\text{Handle}}, f_{\text{ID}}, s, t_{\text{term}}, \tau) $$
+  $$ y_{\text{state}} = (f_1, f_2, s, t_1, \tau) $$
   
-  Where $f_{\text{Handle}}$ is `flowHandle`, $f_{\text{ID}}$ is `flowID`, $s$ is `state`, $t_{\text{term}}$ is `terminal`, $\tau$ is `timestamps`.
+  Where $f_1$ is `flowHandle`, $f_2$ is `flowID`, $s$ is `state`, $t_1$ is `terminal`, $\tau$ is `timestamps`.
 
 - Backend responses:
   $$ y_{\text{backend}} = r(t) $$
@@ -99,9 +99,9 @@ Including:
   Where $r(t)$ is verbatim JSON from backend.
 
 - Deterministic error signals:
-  $$ y_{\text{error}} \in \left\{e_{\text{seq}}, e_{\text{exp}}, e_{\text{not}}, \ldots\right\} $$
+  $$ y_{\text{error}} \in \{e_1, e_2, e_3, \ldots\} $$
   
-  Where $e_{\text{seq}}$ is `sequence-violation`, $e_{\text{exp}}$ is `expired`, $e_{\text{not}}$ is `not-found`.
+  Where $e_1$ is `sequence-violation`, $e_2$ is `expired`, $e_3$ is `not-found`.
 
 Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
 
