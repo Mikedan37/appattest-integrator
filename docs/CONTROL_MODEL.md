@@ -270,9 +270,9 @@ These responsibilities belong to other subsystems.
 flowchart TB
     MC[Mobile Client]
     PB[Product Backend]
-    INT["appattest-integrator<br/>CONTROL PLANE"]
-    BE["appattest-backend<br/>VERIFICATION AUTHORITY"]
-    DP["Decoder / Validator<br/>DATA PLANE"]
+    INT[appattest-integrator<br/>CONTROL PLANE]
+    BE[appattest-backend<br/>VERIFICATION AUTHORITY]
+    DP[Decoder / Validator<br/>DATA PLANE]
 
     MC -->|u(t)| PB
     PB -->|u(t)| INT
