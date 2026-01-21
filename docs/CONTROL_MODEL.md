@@ -136,10 +136,14 @@ Where:
 - Deterministic error signals:
 
 $$
-y_{\texttt{error}} \in
-\{\texttt{sequence\_violation}, \texttt{expired},
-\texttt{not\_found}, \ldots\}
+y_{\mathrm{error}} \in \mathcal{E}
 $$
+
+Where the error set $\mathcal{E}$ includes:
+- `sequence_violation`
+- `expired`
+- `not_found`
+- $\ldots$
 
 Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
 
@@ -238,10 +242,15 @@ No implicit correction.
 ### Feedback paths
 - Backend response feedback
   $$ r(t) \rightarrow x(t+1) $$
-- Time-based expiration
-  $$ \text{now} > \text{expiresAt} \Rightarrow \text{expired} $$
+- Time-based expiration:
 
-Where `expiresAt` is a timestamp field in state.
+$$
+t > t_{\mathrm{expires}} \;\Rightarrow\; x(t) \in \mathcal{X}_{\mathrm{expired}}
+$$
+
+Where:
+- $t_{\mathrm{expires}}$ is the expiration timestamp
+- `expired` is the terminal state
 - Violation counters increment metrics
 
 ### Explicitly absent feedback
