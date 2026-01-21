@@ -241,7 +241,59 @@ flowchart TB
 - No decision loops inside the integrator
 - Supervisory control structure
 
-## 11. Interpretation Notes
+## 11. Formal Constraints
+
+### Transition Constraint Set
+
+Define the set of valid state transitions:
+
+\[ \mathcal{T} = \{(\text{created}, \text{registered}), (\text{registered}, \text{hash\_issued}), (\text{hash\_issued}, \text{verified}), (\text{hash\_issued}, \text{rejected}), (s, \text{expired}) : s \in \mathcal{S}\} \]
+
+Where \(\mathcal{S}\) is the set of all non-terminal states.
+
+### Hard Constraint Enforcement
+
+For any input \(u(t)\) and current state \(x(t)\):
+
+\[ x(t+1) = \begin{cases} f(x(t), u(t), r(t)) & \text{if } (x(t), u(t)) \in \mathcal{T} \\ x(t) & \text{if } (x(t), u(t)) \notin \mathcal{T} \end{cases} \]
+
+Invalid transitions yield deterministic error signals:
+
+\[ y(t) = \text{error}(x(t), u(t)) \quad \text{when } (x(t), u(t)) \notin \mathcal{T} \]
+
+### Terminal State Absorption
+
+Define terminal states:
+
+\[ \mathcal{X}_T = \{\text{verified}, \text{rejected}, \text{expired}, \text{error}\} \]
+
+Terminal states are absorbing:
+
+\[ x(t) \in \mathcal{X}_T \Rightarrow x(t+1) = x(t) \quad \forall u(t) \]
+
+### Observer Constraint
+
+The observation operator \(g\) satisfies:
+
+\[ y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0 \]
+
+Observation queries do not affect state evolution:
+
+\[ x(t+1) = f(x(t), u(t), r(t)) \quad \text{independent of } y(t') \text{ for } t' \le t \]
+
+### Boundedness Constraint
+
+State space is finite and symbolic:
+
+\[ |\mathcal{X}| < \infty \]
+
+Bounded-state property:
+
+\[ \exists\, M < \infty \;\text{s.t.}\; \|x(t)\| \le M \quad \forall t \]
+
+Where \(\|x(t)\|\) denotes state space cardinality.
+
+## 12. Interpretation Notes
 
 This is one valid analytical lens.
 
