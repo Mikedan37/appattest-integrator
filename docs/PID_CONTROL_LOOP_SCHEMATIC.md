@@ -9,52 +9,39 @@ The integrator implements a discrete-time PID controller that adjusts flow admis
 ## Control-System Block Diagram
 
 ```mermaid
-flowchart LR
-    subgraph Reference["Reference Input"]
+flowchart TB
+    subgraph Input["Reference Input"]
         R[Setpoint r<br/>target_latency_ms]
     end
     
-    subgraph Summing["Summing Junction"]
-        SUM[+]
-        MINUS[-]
-    end
-    
-    subgraph Controller["Controller"]
+    subgraph Feedback["Feedback Loop"]
+        SUM[Summing Junction<br/>e(t) = r - y(t)]
         PID[PID Controller<br/>C(z)<br/>Kp, Ki, Kd]
-    end
-    
-    subgraph Actuator["Actuator"]
         SAT[Saturation<br/>clip(u, umin, umax)]
         TB[Token Bucket<br/>u' tokens/sec]
-    end
-    
-    subgraph Plant["Plant"]
         ADM[Admission<br/>n(t) flows]
         BE[Backend<br/>Latency L(t)]
-    end
-    
-    subgraph Sensor["Sensor/Filter"]
         EWMA[EWMA Filter<br/>F(z)<br/>α smoothing]
     end
     
-    subgraph Disturbance["Disturbance"]
+    subgraph Dist["Disturbance"]
         D[d(t)<br/>jitter/retries/CPU]
     end
     
     R -->|r| SUM
-    SUM -->|e(t) = r - y(t)| PID
+    SUM -->|e(t)| PID
     PID -->|u(t)| SAT
     SAT -->|u'(t)| TB
     TB -->|admission rate| ADM
     ADM -->|concurrency n(t)| BE
     D -->|+| BE
     BE -->|L(t)| EWMA
-    EWMA -->|y(t)| MINUS
-    MINUS -->|y(t)| SUM
+    EWMA -->|y(t)| SUM
     
-    style PID fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    style PID fill:#e1f5ff,stroke:#01579b,stroke-width:3px
     style EWMA fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style BE fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style SUM fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
 ```
 
 **Key signals:**
