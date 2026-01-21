@@ -46,7 +46,21 @@ The system is decomposed into four orthogonal subsystems, with the integrator op
 The integrator does not interpret cryptographic artifacts.
 It forwards them unchanged and accumulates protocol-level state only.
 
-## 3. Inputs, Outputs, and State
+## 3. Notation Guide
+
+To keep equations readable, symbolic variables are used in math.
+Concrete field names are given in prose and code blocks.
+
+**Common symbols:**
+- $u_s, u_h, u_a, u_q$: Input event types (start, hash, assert, query)
+- $k, a, v, f, i$: Identifiers (keyID, attestationObject, verifyRunID, flowHandle, flowID)
+- $s, \delta, \tau$: State, terminal flag, timestamps
+- $y_s, y_b, y_e$: Output types (state, backend, error)
+- $\mathcal{E}$: Error set
+- $\mathcal{X}, \mathcal{X}_T$: State space, terminal states
+- $\mathcal{T}$: Valid transition set
+
+## 4. Inputs, Outputs, and State
 
 ### Discrete-time index
 
@@ -65,44 +79,34 @@ Where $\mathcal{U}$ includes:
 - Flow initiation events:
 
 $$
-u_{\texttt{start}} =
-(\texttt{keyID}, \texttt{attestationObject}, \texttt{verifyRunID?})
+u_s = (k, a, v)
 $$
 
-Where:
-- `keyID` is the App Attest key identifier
-- `attestationObject` is the attestation artifact
-- `verifyRunID` is optional
+where `k` is `keyID`, `a` is `attestationObject`, and `v` is an optional `verifyRunID`.
 
 - ClientDataHash requests:
 
 $$
-u_{\texttt{hash}} =
-(\texttt{flowHandle}, \texttt{verifyRunID?})
+u_h = (f, v)
 $$
 
-Where:
-- `flowHandle` is the integrator-scoped handle
-- `verifyRunID` is optional
+where `f` is `flowHandle` and `v` is an optional `verifyRunID`.
 
 - Assertion submissions:
 
 $$
-u_{\texttt{assert}} =
-(\texttt{flowHandle}, \texttt{assertionObject}, \texttt{verifyRunID?})
+u_a = (f, a, v)
 $$
 
-Where:
-- `flowHandle` identifies the flow
-- `assertionObject` is the assertion artifact
-- `verifyRunID` is optional
+where `f` is `flowHandle`, `a` is `assertionObject`, and `v` is an optional `verifyRunID`.
 
 - State observation queries:
 
 $$
-u_{\texttt{status}} =
-(\texttt{flowHandle})
+u_q = (f)
 $$
+
+where `f` is `flowHandle`.
 
 ### Outputs $y(t)$
 
@@ -113,33 +117,31 @@ Including:
 - State observations:
 
 $$
-y_{\texttt{state}} =
-(\texttt{flowHandle}, \texttt{flowID}, s, t_{\texttt{terminal}}, \tau)
+y_s = (f, i, s, \delta, \tau)
 $$
 
-Where:
-- `flowHandle` is the integrator handle
-- `flowID` is the backend-authored identifier
-- $s$ is the protocol state
-- $t_{\texttt{terminal}}$ indicates terminal status
-- $\tau$ represents timestamps
+where:
+- `f` is `flowHandle`
+- `i` is `flowID`
+- $s$ is the current state
+- $\delta$ indicates terminal status
+- $\tau$ denotes timestamps
 
 - Backend responses:
 
 $$
-y_{\texttt{backend}} = r(t)
+y_b = r(t)
 $$
 
-Where:
-- $r(t)$ is the verbatim backend JSON response
+where $r(t)$ is the verbatim backend JSON response.
 
 - Deterministic error signals:
 
 $$
-y_{\mathrm{error}} \in \mathcal{E}
+y_e \in \mathcal{E}
 $$
 
-Where the error set $\mathcal{E}$ includes:
+where the error set $\mathcal{E}$ includes:
 - `sequence_violation`
 - `expired`
 - `not_found`
@@ -175,7 +177,7 @@ Terminal states impose:
 
 $$ x(t+1) = x(t) \quad \forall u(t) \text{ that mutate state} $$
 
-## 5. Discrete-Time Integrator Analogy (Supervisory, Not Linear)
+## 6. Discrete-Time Integrator Analogy (Supervisory, Not Linear)
 
 This system behaves analogously to a discrete-time integrator, but over protocol state, not signal amplitude.
 
@@ -201,7 +203,7 @@ Key differences:
 This is not signal processing or linear control.
 It is discrete protocol-state accumulation under supervisory constraints.
 
-## 6. State Transitions as Hard Constraints
+## 7. State Transitions as Hard Constraints
 
 The state machine defines a constraint surface.
 
@@ -237,7 +239,7 @@ No heuristics.
 No recovery.
 No implicit correction.
 
-## 7. Feedback and Observation
+## 8. Feedback and Observation
 
 ### Feedback paths
 - Backend response feedback:
@@ -275,7 +277,7 @@ Where:
 - $\frac{\partial x}{\partial y} = 0$ (no observer back-action)
 - Observation does not affect state
 
-## 8. Stability and Termination
+## 9. Stability and Termination
 
 Terminal states are absorbing states:
 
@@ -293,7 +295,7 @@ Liveness is not guaranteed:
 
 This is intentional.
 
-## 9. Formal Non-Goals
+## 10. Formal Non-Goals
 
 The system explicitly excludes:
 
@@ -323,7 +325,7 @@ $$
 
 These responsibilities belong to other subsystems.
 
-## 10. Control-System Block Diagram
+## 11. Control-System Block Diagram
 
 ```mermaid
 flowchart TB
@@ -362,7 +364,7 @@ Observation: g(x)"]
 - No decision loops inside the integrator
 - Supervisory control structure
 
-## 11. Formal Constraints
+## 12. Formal Constraints
 
 ### Transition Constraint Set
 
@@ -418,7 +420,7 @@ $$ |\mathcal{X}| < \infty \;\Rightarrow\; x(t) \in \mathcal{X} \;\forall t $$
 
 State space $\mathcal{X}$ is finite and symbolic.
 
-## 12. Interpretation Notes
+## 13. Interpretation Notes
 
 This is one valid analytical lens.
 
