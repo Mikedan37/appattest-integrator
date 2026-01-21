@@ -94,7 +94,7 @@ Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
 
 For each flowHandle $h$:
 
-$$ x_h(t) = \begin{bmatrix} \texttt{state}_h \\ \texttt{flowID}_h \\ \texttt{keyID}_h \\ \texttt{verifyRunID}_h \\ \texttt{timestamps}_h \\ \texttt{lastBackendStatus}_h \end{bmatrix} $$
+$$ x_h(t) = \begin{bmatrix} \text{state}_h \\ \text{flowID}_h \\ \text{keyID}_h \\ \text{verifyRunID}_h \\ \text{timestamps}_h \\ \text{lastBackendStatus}_h \end{bmatrix} $$
 
 Where `verifyRunID` is optional and `lastBackendStatus` stores backend-reported status.
 
