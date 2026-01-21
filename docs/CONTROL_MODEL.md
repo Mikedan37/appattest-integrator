@@ -62,19 +62,19 @@ $$ u(t) \in \mathcal{U} $$
 
 Where $\mathcal{U}$ includes:
 - Flow initiation events
-  $$ u_{\text{start}} = (\text{keyID}, \text{attestationObject}, \text{verifyRunID?}) $$
+  $$ u_{\text{start}} = (\texttt{keyID}, \texttt{attestationObject}, \texttt{verifyRunID?}) $$
 
 Where `verifyRunID` is optional.
 - ClientDataHash requests
-  $$ u_{\text{hash}} = (\text{flowHandle}, \text{verifyRunID?}) $$
+  $$ u_{\text{hash}} = (\texttt{flowHandle}, \texttt{verifyRunID?}) $$
 
 Where `verifyRunID` is optional.
 - Assertion submissions
-  $$ u_{\text{assert}} = (\text{flowHandle}, \text{assertionObject}, \text{verifyRunID?}) $$
+  $$ u_{\text{assert}} = (\texttt{flowHandle}, \texttt{assertionObject}, \texttt{verifyRunID?}) $$
 
 Where `verifyRunID` is optional.
 - State observation queries
-  $$ u_{\text{status}} = (\text{flowHandle}) $$
+  $$ u_{\text{status}} = (\texttt{flowHandle}) $$
 
 ### Outputs $y(t)$
 
@@ -82,11 +82,11 @@ $$ y(t) \in \mathcal{Y} $$
 
 Including:
 - State observations
-  $$ y_{\text{state}} = (\text{flowHandle}, \text{flowID}, \text{state}, \text{terminal}, \text{timestamps}) $$
+  $$ y_{\text{state}} = (\texttt{flowHandle}, \texttt{flowID}, \texttt{state}, \texttt{terminal}, \texttt{timestamps}) $$
 - Backend responses
   $$ y_{\text{backend}} = r(t) \text{ (verbatim JSON)} $$
 - Deterministic error signals
-  $$ y_{\text{error}} \in \{\text{sequence\_violation}, \text{expired}, \text{not\_found}, \dots\} $$
+  $$ y_{\text{error}} \in \{\texttt{sequence\_violation}, \texttt{expired}, \texttt{not\_found}, \dots\} $$
 
 Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
 
@@ -94,7 +94,7 @@ Where error codes include `sequence_violation`, `expired`, `not_found`, etc.
 
 For each flowHandle $h$:
 
-$$ x_h(t) = \begin{bmatrix} \text{state}_h \\ \text{flowID}_h \\ \text{keyID}_h \\ \text{verifyRunID}_h \\ \text{timestamps}_h \\ \text{lastBackendStatus}_h \end{bmatrix} $$
+$$ x_h(t) = \begin{bmatrix} \texttt{state}_h \\ \texttt{flowID}_h \\ \texttt{keyID}_h \\ \texttt{verifyRunID}_h \\ \texttt{timestamps}_h \\ \texttt{lastBackendStatus}_h \end{bmatrix} $$
 
 Where `verifyRunID` is optional and `lastBackendStatus` stores backend-reported status.
 
@@ -155,11 +155,11 @@ $$
 $$
 
 $$
-\text{registered} \rightarrow \text{hash\_issued}
+\text{registered} \rightarrow \texttt{hash\_issued}
 $$
 
 $$
-\text{hash\_issued} \rightarrow \text{verified} \;\;|\;\; \text{rejected}
+\texttt{hash\_issued} \rightarrow \text{verified} \;\;|\;\; \text{rejected}
 $$
 
 $$
@@ -186,7 +186,7 @@ No implicit correction.
 - Backend response feedback
   $$ r(t) \rightarrow x(t+1) $$
 - Time-based expiration
-  $$ \text{now} > \text{expiresAt} \Rightarrow \text{expired} $$
+  $$ \text{now} > \texttt{expiresAt} \Rightarrow \text{expired} $$
 
 Where `expiresAt` is a timestamp field in state.
 - Violation counters increment metrics
@@ -302,7 +302,7 @@ Observation: g(x)"]
 
 Define the set of valid state transitions:
 
-$$ \mathcal{T} = \{(\text{created}, \text{registered}), (\text{registered}, \text{hash\_issued}), (\text{hash\_issued}, \text{verified}), (\text{hash\_issued}, \text{rejected}), (s, \text{expired}) : s \in \mathcal{S}\} $$
+$$ \mathcal{T} = \{(\text{created}, \text{registered}), (\text{registered}, \texttt{hash\_issued}), (\texttt{hash\_issued}, \text{verified}), (\texttt{hash\_issued}, \text{rejected}), (s, \text{expired}) : s \in \mathcal{S}\} $$
 
 Where state names are: `created`, `registered`, `hash_issued`, `verified`, `rejected`, `expired`, `error`.
 
