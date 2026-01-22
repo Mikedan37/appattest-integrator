@@ -1,17 +1,18 @@
-# Control Model of appattest-integrator
+# Control Model of flow-integrator
 
 **For formal mathematical treatment, see [Formal Control Model Appendix](CONTROL_FORMALISM.md).**
 
 ## What This Is
 
-appattest-integrator enforces the correct sequence of Apple App Attest flows, correlates identifiers, and exposes observable flow state.
+flow-integrator enforces sequencing constraints for multi-step protocol flows, correlates identifiers, and exposes observable flow state.
 
 It does not perform cryptographic verification, make trust decisions, or enforce policy.
 
 ## State Machine
 
-The integrator maintains flow state through these transitions:
+The integrator maintains flow state through protocol-specific transitions. States and transitions are configured per protocol.
 
+**Example (App Attest):**
 - `created` → `registered` → `hash_issued` → `verified` or `rejected`
 - Any state → `expired` (time-based)
 - Terminal states: `verified`, `rejected`, `expired`, `error`
@@ -54,14 +55,14 @@ The integrator does not:
 - Provide freshness guarantees beyond backend TTL
 - Prevent replay beyond backend semantics
 
-These belong to other subsystems (appattest-backend, product backends).
+These belong to other subsystems (authoritative backends, product backends).
 
 ## Architecture
 
 ```
-Mobile Client → Product Backend → appattest-integrator → appattest-backend
-                                      ↓
-                                 Status Queries
+Client → Product Backend → flow-integrator → Authoritative Backend
+                              ↓
+                         Status Queries
 ```
 
 **Properties:**
@@ -69,6 +70,8 @@ Mobile Client → Product Backend → appattest-integrator → appattest-backend
 - No loops or circular dependencies
 - Feedback only via backend responses
 - No internal decision logic
+
+The integrator operates in the control plane, coordinating with authoritative backends that make security decisions.
 
 ## Determinism
 

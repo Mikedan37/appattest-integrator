@@ -1,3 +1,15 @@
+// flow-integrator: Zero-Authority Flow Orchestration
+//
+// This system implements the Zero-Authority Integrator Pattern for multi-step protocol flows.
+// It enforces sequencing, correlates identifiers, records authoritative responses verbatim,
+// and exposes observable state without making security decisions.
+//
+// Originally developed for Apple App Attest flows, this system is protocol-agnostic and
+// can orchestrate any multi-step protocol where authority belongs to backend subsystems.
+//
+// See docs/ZERO_AUTHORITY_INTEGRATOR_PATTERN.md for the architectural pattern.
+// See docs/ZERO_AUTHORITY_INTEGRATOR_TRADEOFFS.md for applicability guidance.
+
 import Vapor
 import Foundation
 

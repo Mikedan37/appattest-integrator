@@ -142,9 +142,9 @@ $$
 
 Terminal states cannot be exited.
 
-## Application to App Attest
+## Application Example: App Attest
 
-The App Attest protocol requires strict sequencing:
+The App Attest protocol is one example of a multi-step protocol requiring strict sequencing:
 
 1. **Registration**: Submit attestation object
 2. **Hash Request**: Request client data hash
@@ -159,6 +159,8 @@ With supervisory control:
 - Invalid transitions rejected immediately
 - State observable at any point
 - Failures classifiable and debuggable
+
+This pattern applies to any multi-step protocol flow where sequencing, correlation, and observability are needed, but where authority belongs to backend subsystems. See [ZERO_AUTHORITY_INTEGRATOR_PATTERN.md](ZERO_AUTHORITY_INTEGRATOR_PATTERN.md) for general applicability.
 
 ## Non-Goals
 

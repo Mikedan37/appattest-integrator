@@ -1,19 +1,22 @@
-# appattest-integrator
+# flow-integrator
 
-Flow orchestration daemon for Apple App Attest verification flows.
+Zero-authority flow orchestration daemon for multi-step protocol flows.
 
 ## Mental Model
 
-appattest-integrator enforces sequencing, correlates identifiers, and records backend responses verbatim. It maintains flow state and exposes status endpoints. It does not interpret results or make authorization decisions.
+flow-integrator enforces sequencing, correlates identifiers, and records backend responses verbatim. It maintains flow state and exposes status endpoints. It does not interpret results or make authorization decisions.
+
+This system implements the [Zero-Authority Integrator Pattern](docs/ZERO_AUTHORITY_INTEGRATOR_PATTERN.md), providing deterministic sequencing, state observability, and retry protection for multi-step protocol flows where authority belongs to backend subsystems.
 
 ## Behavior
 
 The integrator:
-- Enforces state machine transitions (registered → hash_issued → verified/rejected)
+- Enforces state machine transitions according to protocol rules
 - Generates correlation IDs and propagates them to backend
 - Stores flow state with TTL-based expiration
 - Returns backend responses verbatim
 - Exposes Prometheus metrics and structured logs
+- Optionally gates admission based on backend latency (admission control)
 
 ## Explicit Non-Goals
 
@@ -27,17 +30,19 @@ The integrator:
 ## Architecture
 
 ```
-Product Backend → appattest-integrator → appattest-backend
+Product Backend → flow-integrator → Authoritative Backend
 ```
 
-The integrator receives flow requests, forwards them to appattest-backend with correlation headers, stores state transitions, and returns backend responses unchanged.
+The integrator receives flow requests, forwards them to authoritative backends with correlation headers, stores state transitions, and returns backend responses unchanged.
 
 ## Component Boundaries
 
-- **appattest-decoder**: Structural parsing only
-- **appattest-validator**: Cryptographic verification only
-- **appattest-backend**: Verification + binding enforcement (authoritative)
-- **appattest-integrator**: Flow orchestration only
+The integrator operates in the control plane, coordinating with:
+- **Authoritative backends**: Make trust, authorization, and verification decisions
+- **Data plane components**: Perform structural parsing and cryptographic operations
+- **flow-integrator**: Flow orchestration only (sequencing, correlation, observability)
+
+The integrator never interprets authoritative responses or makes security decisions.
 
 ## Deployment
 
@@ -45,7 +50,7 @@ The integrator receives flow requests, forwards them to appattest-backend with c
 
 - Debian Linux
 - Swift 6.2+
-- appattest-backend running (default: `http://127.0.0.1:8080`)
+- Authoritative backend running (default: `http://127.0.0.1:8080`)
 
 ### Environment Variables
 
@@ -54,6 +59,8 @@ The integrator receives flow requests, forwards them to appattest-backend with c
 - `APP_ATTEST_BACKEND_TIMEOUT_MS`: Backend request timeout (default: `3000`)
 - `APP_ATTEST_DEBUG_LOG_ARTIFACTS`: Debug logging level (0=none, 1=lengths+SHA256, 2=full dumps, default: `0`)
 - `APP_ATTEST_BUILD_SHA256`: Build SHA256 for health endpoint (optional)
+
+**Note:** Environment variable names retain `APP_ATTEST_` prefix for backward compatibility with existing deployments. The system is protocol-agnostic and can orchestrate any multi-step protocol flow.
 
 ### Admission Control (Optional)
 
@@ -101,15 +108,26 @@ Service file: `/etc/systemd/system/appattest-integrator.service`
 
 ## API Endpoints
 
+The API is protocol-agnostic. Endpoints accept protocol-specific payloads and enforce sequencing constraints. The examples below show the App Attest use case; other protocols use the same endpoints with different payload fields.
+
 ### POST /v1/flows/start
 
 Initiates a flow. Returns integrator-scoped `flowHandle` and backend-authored `flowID`.
 
-**Request:**
+**Request (App Attest example):**
 ```json
 {
   "keyID_base64": "<base64>",
   "attestationObject_base64": "<base64>",
+  "verifyRunID": "<optional uuid>"
+}
+```
+
+**Request (OAuth device flow example):**
+```json
+{
+  "device_code": "<device code>",
+  "client_id": "<client identifier>",
   "verifyRunID": "<optional uuid>"
 }
 ```
@@ -139,7 +157,7 @@ curl -X POST http://localhost:8090/v1/flows/start \
 
 ### POST /v1/flows/{flowHandle}/client-data-hash
 
-Requests clientDataHash. Requires flow in `registered` state.
+Requests intermediate challenge (e.g., clientDataHash for App Attest). Requires flow in `registered` state.
 
 **Request:**
 ```json
@@ -166,7 +184,7 @@ curl -X POST http://localhost:8090/v1/flows/abc123/client-data-hash \
 
 ### POST /v1/flows/{flowHandle}/assert
 
-Submits assertion. Requires flow in `hash_issued` state. Returns backend response verbatim.
+Submits final step payload (e.g., assertion for App Attest). Requires flow in `hash_issued` state. Returns backend response verbatim.
 
 **Request:**
 ```json
@@ -259,22 +277,24 @@ Prometheus-format metrics.
 
 ## State Machine
 
-**States:**
+The state machine enforces protocol sequencing. States and transitions are protocol-specific but follow a common pattern:
+
+**States (App Attest example):**
 - `created`: Initial state (internal)
 - `registered`: Backend reported registration
-- `hash_issued`: Backend issued clientDataHash
+- `hash_issued`: Backend issued intermediate challenge
 - `verified`: Terminal - Backend reported verification success
 - `rejected`: Terminal - Backend reported verification failure
 - `expired`: Terminal - Flow expired
 - `error`: Terminal - Error occurred
 
-**Transitions:**
+**Transitions (App Attest example):**
 - `start` → `registered`
 - `registered` → `hash_issued`
 - `hash_issued` → `verified` | `rejected`
 - Any state → `expired` (when `now > expiresAt`)
 
-Terminal states reject further mutations.
+Terminal states reject further mutations. The state machine structure is protocol-agnostic; state names and transitions are configured per protocol.
 
 ## Flow Store
 
@@ -286,10 +306,14 @@ Correlation headers sent to backend:
 - `X-Correlation-ID`: Flow correlation ID
 - `X-Flow-Handle`: Integrator-scoped flow handle
 
-Backend endpoints:
+Backend endpoints are protocol-specific. The integrator forwards requests to authoritative backends unchanged and records responses verbatim.
+
+**App Attest backend endpoints (example):**
 - `POST /app-attest/register`
 - `POST /app-attest/client-data-hash`
 - `POST /app-attest/verify`
+
+Other protocols use different backend endpoints. The integrator does not interpret backend responses; it records them verbatim.
 
 ## Observability
 
@@ -305,6 +329,23 @@ Backend endpoints:
 - `flow_failed_total`: Counter
 - `backend_requests_total{route=...}`: Counter
 - `sequence_violation_total`: Counter
+
+## Applicability
+
+This integrator is designed for multi-step protocol flows where:
+- Sequencing must be enforced deterministically
+- State must be observable without side effects
+- Authority (verification, authorization, policy) belongs to backend subsystems
+- Retry storms and state desynchronization are operational concerns
+
+**Example use cases:**
+- Apple App Attest flows (attestation → hash request → assertion)
+- OAuth device authorization flows (device code → user authorization → token exchange)
+- WebAuthn registration + assertion flows
+- Payment authorization handshakes
+- Multi-step provisioning workflows
+
+See [docs/ZERO_AUTHORITY_INTEGRATOR_PATTERN.md](docs/ZERO_AUTHORITY_INTEGRATOR_PATTERN.md) for the architectural pattern and [docs/ZERO_AUTHORITY_INTEGRATOR_TRADEOFFS.md](docs/ZERO_AUTHORITY_INTEGRATOR_TRADEOFFS.md) for when to use and when not to use this pattern.
 
 ## Development
 
