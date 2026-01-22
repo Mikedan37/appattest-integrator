@@ -1,5 +1,11 @@
 # Zero-Authority Integrator Pattern
 
+**TL;DR**
+
+A zero-authority integrator orchestrates multi-step protocol flows without making security decisions.
+It enforces sequencing, correlates identifiers, records authoritative responses verbatim, and exposes observable state.
+It never verifies, authorizes, or interprets results.
+
 ## Problem Statement
 
 Multi-step protocol flows require sequencing enforcement, identifier correlation, and state observability.
