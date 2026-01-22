@@ -45,39 +45,39 @@ flowchart TB
     end
     
     subgraph Ctrl["Controller"]
-        PID["PID Controller\nC(z)\nKp, Ki, Kd"]
+        PID["PID Controller\nKp, Ki, Kd"]
     end
     
     subgraph Act["Actuator"]
-        SAT["Saturation\nclip(u, umin, umax)"]
-        TB["Token Bucket\nu' tokens/sec"]
+        SAT["Saturation\nclip to range"]
+        TB["Token Bucket\nfill rate"]
     end
     
     subgraph Plant["Plant"]
         ADM["Admission Gate\nRoutes.swift"]
-        CONC["Concurrency n(t)"]
-        BE["Backend\nLatency L(t)"]
+        CONC["Concurrency n"]
+        BE["Backend\nLatency L"]
     end
     
     subgraph Sensor["Sensor/Filter"]
-        EWMA["EWMA Filter\nF(z)\nalpha smoothing"]
+        EWMA["EWMA Filter\nalpha smoothing"]
     end
     
     subgraph Dist["Disturbance"]
-        D["d(t)\njitter/retries/CPU"]
+        D["Disturbance d\njitter/retries/CPU"]
     end
     
     R -->|r| SUM
-    SUM -->|error| PID
-    PID -->|u(t)| SAT
-    SAT -->|u'(t)| TB
-    TB -->|lambda(t)| ADM
-    ADM -->|n(t)| CONC
+    SUM -->|e| PID
+    PID -->|u| SAT
+    SAT -->|u_prime| TB
+    TB -->|lambda| ADM
+    ADM -->|n| CONC
     CONC --> BE
-    D -->|+| BE
-    BE -->|L(t)| EWMA
-    EWMA -->|y(t)| MINUS
-    MINUS -->|y(t)| SUM
+    D -->|d| BE
+    BE -->|L| EWMA
+    EWMA -->|y| MINUS
+    MINUS -->|y| SUM
     
     style PID fill:#e1f5ff,stroke:#01579b,stroke-width:3px
     style EWMA fill:#fff3e0,stroke:#e65100,stroke-width:2px
