@@ -1,6 +1,6 @@
 # Control Model of appattest-integrator
 
-**For formal mathematical treatment, see [Formal Control Model Appendix](CONTROL_FORMALISM.md).**
+**For formal mathematical treatment, see [Formal Control Model Appendix](./CONTROL_FORMALISM.md).**
 
 ## What This Is
 
@@ -86,4 +86,4 @@ Terminal states ensure eventual termination. TTL enforces that flows cannot rema
 
 ---
 
-**For control-theoretic formalization with equations and proofs, see [CONTROL_FORMALISM.md](CONTROL_FORMALISM.md).**
+**For control-theoretic formalization with equations and proofs, see [CONTROL_FORMALISM.md](./CONTROL_FORMALISM.md).**
