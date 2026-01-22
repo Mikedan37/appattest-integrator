@@ -19,7 +19,9 @@ The supervisory control model provides:
 
 Invalid transitions are rejected deterministically:
 
-\[ x(t+1) = x(t) \quad \text{if } (x(t), u(t)) \notin \mathcal{T} \]
+$$
+x(t+1) = x(t) \quad \text{if } (x(t), u(t)) \notin \mathcal{T}
+$$
 
 No step skipping. No implicit recovery. No ambiguity about what happened.
 
@@ -27,7 +29,9 @@ No step skipping. No implicit recovery. No ambiguity about what happened.
 
 State queries are read-only:
 
-\[ y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0 \]
+$$
+y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0
+$$
 
 You can observe "where in the flow" without affecting the flow.
 
@@ -35,7 +39,9 @@ You can observe "where in the flow" without affecting the flow.
 
 Failures are deterministic functions of state and input:
 
-\[ y(t) = \text{error}(x(t), u(t)) \]
+$$
+y(t) = \text{error}(x(t), u(t))
+$$
 
 Failures are:
 - **Sequence violations**: Invalid transition attempted
@@ -50,12 +56,14 @@ No ambiguity. No guessing.
 
 You can model a software control plane as a discrete-time supervisory controller:
 
-\[ x(t+1) = f(x(t), u(t), r(t)) \]
+$$
+x(t+1) = f(x(t), u(t), r(t))
+$$
 
 Where:
-- \(x(t)\) is accumulated protocol state
-- \(u(t)\) are discrete protocol events
-- \(r(t)\) is exogenous backend feedback
+- $x(t)$ is accumulated protocol state
+- $u(t)$ are discrete protocol events
+- $r(t)$ is exogenous backend feedback
 
 This is not academic. It is a precise model of what the system does.
 
@@ -73,7 +81,9 @@ These invariants prevent entire classes of bugs.
 
 The observation operator is explicitly decoupled:
 
-\[ y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0 \]
+$$
+y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0
+$$
 
 You can observe state without creating feedback loops or side effects.
 
@@ -82,7 +92,7 @@ You can observe state without creating feedback loops or side effects.
 The diagram shows:
 - Single accumulation point (integrator only)
 - No algebraic loops
-- Feedback enters only via backend responses \(r(t)\)
+- Feedback enters only via backend responses $r(t)$
 - No hidden controller-in-controller coupling
 
 This prevents accidental coupling and makes the system easier to reason about.
@@ -91,34 +101,44 @@ This prevents accidental coupling and makes the system easier to reason about.
 
 ### Discrete-Time Event Index
 
-\[ t \in \mathbb{N}, \quad t \mapsto \text{protocol event} \]
+$$
+t \in \mathbb{N}, \quad t \mapsto \text{protocol event}
+$$
 
 Time advances in event time, not wall-clock time.
 
 ### State Update
 
-\[ x(t+1) = f(x(t), u(t), r(t)) \]
+$$
+x(t+1) = f(x(t), u(t), r(t))
+$$
 
 Where:
-- \(f\) is deterministic
-- \(r(t)\) is backend response (if invoked)
+- $f$ is deterministic
+- $r(t)$ is backend response (if invoked)
 - Past state is immutable
 
 ### Observation Operator (No Back-Action)
 
-\[ y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0 \]
+$$
+y(t) = g(x(t)), \quad \frac{\partial x}{\partial y} = 0
+$$
 
 Observation does not affect state evolution.
 
 ### Hard Constraint Enforcement
 
-\[ x(t+1) = x(t) \quad \text{if } (x(t), u(t)) \notin \mathcal{T} \]
+$$
+x(t+1) = x(t) \quad \text{if } (x(t), u(t)) \notin \mathcal{T}
+$$
 
 Invalid transitions are rejected deterministically.
 
 ### Absorbing Terminal States
 
-\[ x(t) \in \mathcal{X}_T \Rightarrow x(t+1) = x(t) \]
+$$
+x(t) \in \mathcal{X}_T \Rightarrow x(t+1) = x(t)
+$$
 
 Terminal states cannot be exited.
 

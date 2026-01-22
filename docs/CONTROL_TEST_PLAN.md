@@ -19,26 +19,30 @@ Define setpoint, perturb system, measure response, prove boundedness empirically
 
 Set target latency:
 
-\[ r = \text{target latency} \quad \text{(e.g., 100 ms)} \]
+$$
+r = \text{target latency} \quad \text{(e.g., 100 ms)}
+$$
 
 ### 2. Perturb System (Step Input)
 
 Apply step change in load:
 
-\[ u(t) = \begin{cases} u_0 & t < t_0 \\ u_1 & t \ge t_0 \end{cases} \]
+$$
+u(t) = \begin{cases} u_0 & t < t_0 \\ u_1 & t \ge t_0 \end{cases}
+$$
 
 Where:
-- \(u_0\): Baseline load (e.g., 10 flows/sec)
-- \(u_1\): Step load (e.g., 100 flows/sec)
-- \(t_0\): Step time
+- $u_0$: Baseline load (e.g., 10 flows/sec)
+- $u_1$: Step load (e.g., 100 flows/sec)
+- $t_0$: Step time
 
 ### 3. Measure Response
 
 Record:
-- Latency \(y(t)\) over time
-- Admission rate \(u'(t)\) over time
-- Overshoot \(M_p\)
-- Settling time \(T_s\)
+- Latency $y(t)$ over time
+- Admission rate $u'(t)$ over time
+- Overshoot $M_p$
+- Settling time $T_s$
 - Steady-state error
 
 ### 4. Validate Stability
@@ -52,35 +56,43 @@ Prove:
 
 ### Overshoot
 
-\[ M_p = \frac{y_{\max} - r}{r} \]
+$$
+M_p = \frac{y_{\max} - r}{r}
+$$
 
 Maximum percentage overshoot above setpoint.
 
-Acceptable: \(M_p < 20\%\)
+Acceptable: $M_p < 20\%$
 
 ### Settling Time
 
-\[ T_s = \min\{t: |y(t) - r| < \epsilon r \quad \forall t' \ge t\} \]
+$$
+T_s = \min\{t: |y(t) - r| < \epsilon r \quad \forall t' \ge t\}
+$$
 
-Time to converge within tolerance \(\epsilon\) (e.g., 5%).
+Time to converge within tolerance $\epsilon$ (e.g., 5%).
 
-Acceptable: \(T_s < 10\) seconds
+Acceptable: $T_s < 10$ seconds
 
 ### Steady-State Error
 
-\[ e_{ss} = \lim_{t \to \infty} |y(t) - r| \]
+$$
+e_{ss} = \lim_{t \to \infty} |y(t) - r|
+$$
 
 Final error after settling.
 
-Acceptable: \(e_{ss} < 5\%\) of setpoint
+Acceptable: $e_{ss} < 5\%$ of setpoint
 
 ### Bounded Output Under Bounded Disturbance
 
-\[ |d(t)| < D \Rightarrow |y(t)| < Y \]
+$$
+|d(t)| < D \Rightarrow |y(t)| < Y
+$$
 
-For bounded disturbance \(D\), output remains bounded \(Y\).
+For bounded disturbance $D$, output remains bounded $Y$.
 
-Acceptable: \(Y < 2r\) (output never exceeds 2x setpoint)
+Acceptable: $Y < 2r$ (output never exceeds 2x setpoint)
 
 ## Test Scenarios
 
@@ -131,10 +143,10 @@ Expected: Latency remains bounded, admission rate saturates.
 
 System is stable if:
 
-1. **Boundedness**: \(|y(t)| < 2r\) for all \(t\)
-2. **Convergence**: \(|y(t) - r| < 0.05r\) for \(t > T_s\)
+1. **Boundedness**: $|y(t)| < 2r$ for all $t$
+2. **Convergence**: $|y(t) - r| < 0.05r$ for $t > T_s$
 3. **No Sustained Oscillation**: No periodic behavior after settling
-4. **Disturbance Rejection**: \(|y(t) - r| < 0.1r\) within 5 seconds of disturbance
+4. **Disturbance Rejection**: $|y(t) - r| < 0.1r$ within 5 seconds of disturbance
 
 ## Implementation
 
