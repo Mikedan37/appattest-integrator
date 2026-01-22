@@ -36,7 +36,7 @@ This is a discrete-time sampled-data control system operating at fixed intervals
 ```mermaid
 flowchart TB
     subgraph Ref["Reference"]
-        R[Setpoint r<br/>target_latency_ms]
+        R["Setpoint r\ntarget_latency_ms"]
     end
     
     subgraph Sum["Summing Junction"]
@@ -45,33 +45,33 @@ flowchart TB
     end
     
     subgraph Ctrl["Controller"]
-        PID[PID Controller<br/>C(z)<br/>Kp, Ki, Kd]
+        PID["PID Controller\nC(z)\nKp, Ki, Kd"]
     end
     
     subgraph Act["Actuator"]
-        SAT[Saturation<br/>clip(u, umin, umax)]
-        TB[Token Bucket<br/>u' tokens/sec]
+        SAT["Saturation\nclip(u, umin, umax)"]
+        TB["Token Bucket\nu' tokens/sec"]
     end
     
     subgraph Plant["Plant"]
-        ADM[Admission Gate<br/>Routes.swift]
-        CONC[Concurrency n(t)]
-        BE[Backend<br/>Latency L(t)]
+        ADM["Admission Gate\nRoutes.swift"]
+        CONC["Concurrency n(t)"]
+        BE["Backend\nLatency L(t)"]
     end
     
     subgraph Sensor["Sensor/Filter"]
-        EWMA[EWMA Filter<br/>F(z)<br/>α smoothing]
+        EWMA["EWMA Filter\nF(z)\nalpha smoothing"]
     end
     
     subgraph Dist["Disturbance"]
-        D[d(t)<br/>jitter/retries/CPU]
+        D["d(t)\njitter/retries/CPU"]
     end
     
     R -->|r| SUM
     SUM -->|error| PID
     PID -->|u(t)| SAT
     SAT -->|u'(t)| TB
-    TB -->|λ(t)| ADM
+    TB -->|lambda(t)| ADM
     ADM -->|n(t)| CONC
     CONC --> BE
     D -->|+| BE
