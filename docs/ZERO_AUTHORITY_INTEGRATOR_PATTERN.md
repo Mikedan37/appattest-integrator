@@ -2,13 +2,15 @@
 
 ## Problem Statement
 
-Multi-step protocol flows require sequencing enforcement, identifier correlation, and state observability. When these concerns are mixed with cryptographic verification, trust decisions, or policy enforcement, the system becomes difficult to reason about, debug, and operate.
+Multi-step protocol flows require sequencing enforcement, identifier correlation, and state observability.
 
-Common failure modes include:
-- Retry storms from ambiguous state
-- State desynchronization between components
-- Unclear error attribution
-- Difficult production debugging
+The common failure mode is **authority bleed**: orchestration layers gradually take on cryptographic interpretation, authorization decisions, or policy enforcement. That coupling makes production failures ambiguous and recovery brittle.
+
+Typical symptoms:
+- Retry storms caused by ambiguous flow state
+- State desynchronization across components
+- Unclear error attribution (orchestrator vs verifier vs client)
+- Low-quality observability during incidents
 
 ## Pattern Definition
 
@@ -34,11 +36,39 @@ A zero-authority integrator is a protocol orchestration layer that enforces sequ
 
 ### Why Separation Matters
 
-Separating orchestration from authority enables:
-- Clear error attribution: orchestration failures vs. authority failures
-- Independent evolution: orchestration logic changes without touching verification
-- Production debuggability: state queries reveal protocol flow without security concerns
-- Testability: orchestration can be tested without cryptographic primitives
+Separation makes failures classifiable and contained:
+
+- **Attribution:** orchestration errors vs authority errors are distinguishable
+- **Isolation:** verification/policy changes do not require orchestration changes
+- **Operability:** state queries show flow progression without interpreting security meaning
+- **Testability:** orchestration can be validated without cryptographic fixtures
+
+## Interface Contract
+
+### Inputs
+
+- Flow initiation events (with identifiers and artifacts)
+- Protocol step requests (with flow handle and step-specific data)
+- State observation queries (with flow handle)
+
+### Outputs
+
+- State observations (flow handle, identifiers, current state, terminal flag, timestamps)
+- Verbatim authoritative subsystem responses (unchanged)
+- Deterministic error signals (sequence violations, expired, not found)
+
+### Guarantees
+
+- Deterministic state transitions (same state + same input = same next state)
+- No authority decisions (integrator never makes trust/authorization/policy calls)
+- Verbatim forwarding (authoritative responses are unchanged)
+- Terminal state absorption (terminal states do not transition)
+
+### Non-Guarantees
+
+- Liveness (flows may stall; TTL enforces eventual expiration)
+- Freshness (integrator does not provide freshness beyond authoritative subsystem TTL)
+- Replay prevention (integrator does not prevent replay beyond authoritative subsystem semantics)
 
 ## Applicability
 
@@ -109,12 +139,12 @@ This pattern applies to any multi-step protocol flow where sequencing, correlati
 - Backend request/response pairs (verbatim)
 - Flow expiration events
 
-### Observable Invariants
+### Observable Rules
 
-- Terminal states are absorbing (no transitions from terminal states)
-- State space is bounded (TTL enforces expiration)
-- Invalid transitions are rejected (no state change on rejection)
-- Observation queries have no side effects (read-only)
+- Terminal states do not transition.
+- Invalid transitions do not mutate state.
+- Status queries are read-only.
+- TTL cleanup prevents unbounded state growth.
 
 ### Diagnosability
 
@@ -129,6 +159,99 @@ It does not diagnose:
 - Authorization failures (belongs to authoritative subsystem)
 - Policy violations (belongs to authoritative subsystem)
 
+## Failure Modes
+
+### Backend Unavailability
+
+**Integrator behavior:**
+- Returns 502/504 to client
+- Does not advance flow state
+- Flow remains in current state until backend recovers or TTL expires
+
+**Observability:**
+- Backend request failure rate metric
+- Flow state distribution shows flows stuck in non-terminal states
+
+### Backend Latency Spikes
+
+**Integrator behavior:**
+- Optional admission control gates new requests (see admission control documentation)
+- Existing flows continue; backend timeout applies per request
+- No state mutation until backend responds
+
+**Observability:**
+- Backend latency percentiles (p50, p95, p99)
+- Admission control rejection rate (if enabled)
+
+### Duplicate Requests
+
+**Integrator behavior:**
+- Same flow handle + same transition = idempotent (no state change, returns current state)
+- Same flow handle + different transition = rejected as sequence violation
+- Different flow handles = independent flows
+
+**Observability:**
+- Sequence violation rate (indicates client retry patterns)
+- Idempotent request detection (same correlation ID + same transition)
+
+### Clock Skew
+
+**Integrator behavior:**
+- TTL uses monotonic time if available, otherwise wall-clock time
+- Bounded drift acceptable (TTL is approximate, authoritative subsystems handle freshness)
+
+**Observability:**
+- Flow expiration rate (should match expected TTL distribution)
+
+## Incident Playbook
+
+### High Sequence Violation Rate
+
+**Check:**
+- Client retry patterns (logs show correlation IDs)
+- Flow state distribution (are flows stuck?)
+
+**Action:**
+- If client misuse: throttle or reject invalid transitions
+- If backend slow: check backend latency metrics
+- If state desync: investigate state store consistency
+
+### High Backend Latency
+
+**Check:**
+- Backend latency percentiles (p50, p95, p99)
+- Backend error rate
+- Admission control status (if enabled)
+
+**Action:**
+- Enable admission control if not already enabled
+- Investigate backend route-specific latency
+- Check for backend capacity issues
+
+### Flows Stuck in Non-Terminal States
+
+**Check:**
+- Flow state distribution (which states are accumulating?)
+- Backend availability (are requests succeeding?)
+- TTL expiration rate (are flows expiring?)
+
+**Action:**
+- If backend down: wait for recovery or manually expire flows
+- If TTL not working: check clock synchronization
+- If state store issue: investigate persistence layer
+
+### State Store Growth
+
+**Check:**
+- State store size metric
+- Flow expiration rate
+- TTL cleanup task status
+
+**Action:**
+- Verify TTL cleanup is running
+- Check for TTL configuration errors
+- Consider reducing TTL if appropriate
+
 ## Implementation Considerations
 
 ### State Management
@@ -139,23 +262,16 @@ State can be stored in-memory with TTL cleanup, or in persistent stores (Redis, 
 
 The integrator handles concurrent requests for the same flow handle. Invalid transitions are rejected deterministically regardless of concurrency.
 
-### Failure Modes
-
-- Backend unavailability: flows remain in non-terminal states until backend recovers or TTL expires
-- State store failure: integrator rejects new flows; existing flows may be lost depending on persistence
-- Clock skew: TTL enforcement may be imprecise; authoritative subsystems handle their own freshness
-
 ### Extension Points
 
 - State persistence (in-memory → Redis → distributed database)
 - Metrics backend (Prometheus → custom collectors)
 - Logging backend (structured logs → centralized logging)
+- Admission control (optional rate limiting based on backend latency)
 
 ## Relationship to Control Theory
 
-This pattern can be formalized using discrete-time supervisory control models. The integrator implements a finite-state machine with deterministic transitions, bounded state space, and observation without side effects.
-
-Formal mathematical treatment is available in [CONTROL_FORMALISM.md](CONTROL_FORMALISM.md). Understanding the control-theoretic framing is optional and non-essential for using this pattern.
+The integrator is equivalent to a deterministic finite-state supervisor over protocol events with read-only observation. Formalization exists in [CONTROL_FORMALISM.md](CONTROL_FORMALISM.md) and is optional.
 
 ## References
 
