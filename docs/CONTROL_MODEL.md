@@ -2,114 +2,88 @@
 
 **For formal mathematical treatment, see [Formal Control Model Appendix](CONTROL_FORMALISM.md).**
 
-## Overview
+## What This Is
 
-appattest-integrator is a finite-state supervisory controller that enforces sequencing constraints on Apple App Attest flows. It accumulates protocol state, enforces valid transitions, and exposes observable state without making trust or authorization decisions.
+appattest-integrator enforces the correct sequence of Apple App Attest flows, correlates identifiers, and exposes observable flow state.
 
-This document describes the conceptual model. The system functions correctly without understanding this model.
+It does not perform cryptographic verification, make trust decisions, or enforce policy.
 
-## System Boundary
+## State Machine
 
-The integrator operates in the control plane, coordinating with:
+The integrator maintains flow state through these transitions:
 
-- **appattest-backend**: Cryptographic verification authority (data plane)
-- **appattest-decoder/validator**: Parsing and crypto primitives (data plane)
-- **Product backends**: Policy and business logic
-- **Mobile clients**: Protocol event sources
-
-The integrator forwards cryptographic artifacts unchanged and accumulates only protocol-level state.
-
-## Core Invariants
-
-### State Machine
-
-The integrator maintains a finite-state machine with these states:
 - `created` → `registered` → `hash_issued` → `verified` or `rejected`
 - Any state → `expired` (time-based)
 - Terminal states: `verified`, `rejected`, `expired`, `error`
 
-**Invariant:** Invalid transitions are rejected deterministically. No heuristics, no recovery, no implicit correction.
+**Rule:** Invalid transitions are rejected. No recovery, no heuristics.
 
-### State Accumulation
+## State Updates
 
-State evolves deterministically based on:
+State changes deterministically based on:
 - Current state
-- Input event type
-- Backend response (if invoked)
+- Input event (start, hash, assert, status query)
+- Backend response (if a backend call was made)
 
-**Invariant:** Terminal states are absorbing. Once a flow reaches a terminal state, it cannot transition to another state.
+**Rule:** Terminal states are final. Once a flow reaches `verified`, `rejected`, `expired`, or `error`, it cannot transition further.
 
-**Invariant:** Past state is immutable. State history is effectively append-only.
+**Rule:** State history is immutable. Past state cannot be changed.
 
-### Observation
+## Observation
 
-The integrator exposes state through observation queries.
+The integrator exposes state through status queries.
 
-**Invariant:** Observation has no side effects. Querying state does not modify state.
+**Rule:** Querying state has no side effects. Status queries do not modify flow state.
 
-**Invariant:** State space is finite and bounded. The number of possible states is limited.
+**Rule:** State space is finite. The number of possible states is bounded.
 
-### Feedback
+## Feedback
 
-Feedback enters the system only through:
-- Backend responses (affect state transitions)
-- Time-based expiration (moves flows to `expired`)
+State changes occur only through:
+- Backend responses (after register/hash/assert calls)
+- Time-based expiration (TTL enforcement)
 
-**Invariant:** Authorization outcomes, trust assessments, and policy decisions do not exist in this system. These signals are absent by design.
+**Rule:** Authorization, trust, and policy decisions do not exist in this system. The integrator does not make these decisions.
 
-## Explicit Non-Goals
+## Non-Goals
 
-The integrator explicitly does not:
-- Perform cryptographic verification
-- Make trust decisions
-- Implement authorization logic
+The integrator does not:
+- Verify cryptographic artifacts
+- Make trust or authorization decisions
 - Evaluate policy
 - Provide freshness guarantees beyond backend TTL
 - Prevent replay beyond backend semantics
 
-These responsibilities belong to other subsystems.
+These belong to other subsystems (appattest-backend, product backends).
 
-## Control Structure
-
-The integrator implements a supervisory control pattern:
+## Architecture
 
 ```
 Mobile Client → Product Backend → appattest-integrator → appattest-backend
                                       ↓
-                                 State Observation
+                                 Status Queries
 ```
 
-**Key properties:**
-- Single state accumulation point
-- No algebraic loops
-- Feedback enters only via backend responses
-- No decision loops inside the integrator
+**Properties:**
+- Single state store
+- No loops or circular dependencies
+- Feedback only via backend responses
+- No internal decision logic
 
-## Discrete-Time Behavior
+## Determinism
 
-Time advances in event time, not wall-clock time. Each protocol event corresponds to a discrete time step.
+State updates are deterministic. Same state + same input = same next state.
 
-**Invariant:** There is no continuous-time signal. The system operates on discrete events.
+Time advances per event, not wall-clock time.
 
-**Invariant:** State updates are deterministic. Given the same state and input, the system produces the same next state.
+## Termination
 
-## Boundedness and Termination
+State space is finite and bounded.
 
-**Invariant:** State space is finite. The number of possible states is bounded.
+Terminal states ensure eventual termination. TTL enforces that flows cannot remain active indefinitely.
 
-**Invariant:** Terminal states enforce eventual termination. Flows cannot remain in non-terminal states indefinitely (TTL enforcement).
-
-**Note:** Liveness is not guaranteed. Flows may stall, but TTL enforces eventual termination. This is intentional.
-
-## Interpretation
-
-This control-theoretic framing is one valid analytical lens. Equivalent interpretations include:
-- Protocol state machine
-- Control-plane orchestrator
-- Correlation and sequencing service
-
-The control model is descriptive, not performative. The system functions identically without understanding this model.
+**Note:** Liveness is not guaranteed. Flows may stall, but TTL ensures they eventually expire.
 
 ---
 
-**For formal mathematical treatment including equations, set notation, and detailed proofs, see [CONTROL_FORMALISM.md](CONTROL_FORMALISM.md).**
+**For control-theoretic formalization with equations and proofs, see [CONTROL_FORMALISM.md](CONTROL_FORMALISM.md).**
